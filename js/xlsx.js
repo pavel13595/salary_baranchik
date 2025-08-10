@@ -1,6 +1,7 @@
 import { state } from './state.js';
 import { showToast } from './ui.js';
 import { computePays } from './pay.js';
+import { rateDisplay } from './utils.js';
 
 const FIXED_LAYOUT = [
   { key: 'name', title: '', width: 28 },
@@ -41,7 +42,7 @@ function buildReportData() {
   const totalColIndex = FIXED_LAYOUT.findIndex(c => c.key === 'total');
   const subgroupMap = new Map(); SUBGROUPS.forEach(sg => subgroupMap.set(sg.name, []));
   for (const emp of state.employees) { if (isDayOff(emp)) continue; if (!(emp.rateType === 'fixed' || emp.hoursMinutes > 0)) continue; const sg = classifySubgroup(emp.position); if (!subgroupMap.has(sg)) subgroupMap.set(sg, []); subgroupMap.get(sg).push(emp); }
-  function rateDisp(e) { if (e.rateType === 'waiter') return '5%'; if (e.rateType === 'hostess') return String(e.hourlyRate); if (e.rateType === 'fixed') return String(e.basePay); return String(e.hourlyRate); }
+  function rateDisp(e) { return rateDisplay(e); }
   function hoursF(e) { return e.hoursMinutes ? (e.hoursMinutes / 60).toFixed(2) : (e.hoursMinutes === 0 ? '0' : ''); }
   let totalAll = 0;
   for (const sg of SUBGROUPS.map(s => s.name)) {

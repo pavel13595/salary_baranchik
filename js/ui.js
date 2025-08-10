@@ -1,4 +1,4 @@
-import { $, escapeHtml, diffMinutes } from './utils.js';
+import { $, escapeHtml, diffMinutes, rateDisplay } from './utils.js';
 import { state, persist } from './state.js';
 import { computePays, isDayOff } from './pay.js';
 import { applyHoursToEmployees, parseEmployeesBulk, parseHoursBulk } from './parse.js';
@@ -32,7 +32,7 @@ export function renderEmployeesTable() {
     if (g !== '_NO_GROUP_') rows.push(`<tr class='group-row'><td colspan='9'>${escapeHtml(g)}</td></tr>`);
     for (const emp of orderMap.get(g)) {
       const fixed = emp.rateType === 'fixed';
-      const rateDisp = emp.rateType === 'waiter' ? '5%' : emp.rateType === 'hostess' ? String(emp.hourlyRate) : emp.rateType === 'fixed' ? String(emp.basePay) : String(emp.hourlyRate);
+  const rateDisp = rateDisplay(emp);
       const fixedTag = fixed ? '<span class="tag-fixed">FIX</span>' : '';
       const payInt = (typeof emp.pay === 'number') ? Math.round(emp.pay) : '';
       const hoursEsc = escapeHtml(emp.hoursText || '');
@@ -66,7 +66,11 @@ function onCellEdit(e) {
   const field = td.dataset.field; const val = td.textContent.trim();
   if (field === 'sales' || field === 'gifts' || field === 'withheld') { emp[field] = parseFloat(val.replace(/,/g, '.')) || 0; }
   else if (field === 'hoursText') { emp.hoursText = val; const clean = val.replace(/\s+/g, ''); const m = clean.match(/(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/); if (m) { emp.hoursMinutes = diffMinutes(m[1], m[2]); } else { emp.hoursMinutes = 0; } }
-  computePays(); persist(); renderEmployeesTable();
+  recalcPersistRender();
+}
+
+function recalcPersistRender(toast, type='success') {
+  computePays(); persist(); renderEmployeesTable(); if (toast) showToast(toast, type);
 }
 
 export function openModal({ title, body, actions = [] }) {
@@ -88,7 +92,7 @@ export function importEmployeesFlow() {
   const body = document.createElement('div'); body.append(ta, helper);
   openModal({ title: 'Імпорт співробітників', body, actions: [
     { label: 'Скасувати', class: 'subtle', onClick: closeModal },
-    { label: 'Імпортувати', class: 'primary', onClick: () => { const emps = parseEmployeesBulk(ta.value.trim()); if (!emps.length) { showToast('Порожній список', 'error'); return; } state.employees = emps; computePays(); persist(); renderEmployeesTable(); closeModal(); showToast('Імпортовано ' + emps.length, 'success'); } }
+  { label: 'Імпортувати', class: 'primary', onClick: () => { const emps = parseEmployeesBulk(ta.value.trim()); if (!emps.length) { showToast('Порожній список', 'error'); return; } state.employees = emps; recalcPersistRender('Імпортовано ' + emps.length); closeModal(); } }
   ] });
 }
 
@@ -102,7 +106,7 @@ export function editEmployeesFlow() {
   const body = document.createElement('div'); body.append(ta, helper);
   openModal({ title: 'Редагувати список', body, actions: [
     { label: 'Відміна', class: 'subtle', onClick: closeModal },
-    { label: 'Зберегти', class: 'primary', onClick: () => { const list = parseEmployeesBulk(ta.value.trim()); if (!list.length) { showToast('Порожньо', 'error'); return; } list.forEach(n => { const old = state.employees.find(o => o.order === n.order); if (old) { n.hoursText = old.hoursText; n.hoursMinutes = old.hoursMinutes; n.sales = old.sales; n.gifts = old.gifts; } }); state.employees = list; computePays(); persist(); renderEmployeesTable(); closeModal(); showToast('Оновлено', 'success'); } }
+  { label: 'Зберегти', class: 'primary', onClick: () => { const list = parseEmployeesBulk(ta.value.trim()); if (!list.length) { showToast('Порожньо', 'error'); return; } list.forEach(n => { const old = state.employees.find(o => o.order === n.order); if (old) { n.hoursText = old.hoursText; n.hoursMinutes = old.hoursMinutes; n.sales = old.sales; n.gifts = old.gifts; } }); state.employees = list; recalcPersistRender('Оновлено'); closeModal(); } }
   ] });
 }
 
@@ -113,7 +117,7 @@ export function importHoursFlow() {
   const body = document.createElement('div'); body.append(ta, helper);
   openModal({ title: 'Імпорт годин', body, actions: [
     { label: 'Скасувати', class: 'subtle', onClick: closeModal },
-    { label: 'Застосувати', class: 'primary', onClick: () => { const lines = parseHoursBulk(ta.value.trim()); applyHoursToEmployees(lines); computePays(); persist(); renderEmployeesTable(); closeModal(); showToast('Години додано', 'success'); promptSalesIfNeeded(); } }
+  { label: 'Застосувати', class: 'primary', onClick: () => { const lines = parseHoursBulk(ta.value.trim()); applyHoursToEmployees(lines); recalcPersistRender('Години додано'); closeModal(); promptSalesIfNeeded(); } }
   ] });
 }
 
@@ -124,12 +128,12 @@ function promptSalesIfNeeded() {
   const list = document.createElement('div'); list.style.display = 'flex'; list.style.flexDirection = 'column'; list.style.gap = '10px';
   targets.forEach(emp => { const row = document.createElement('div'); row.className = 'inline-fields'; row.innerHTML = `<div class='input'><span>${escapeHtml(emp.name)} Продажі</span><input type='number' value='${emp.sales || ''}' data-id='${emp.id}' data-field='sales'></div><div class='input'><span>Подарунки</span><input type='number' value='${emp.gifts || ''}' data-id='${emp.id}' data-field='gifts'></div>`; list.appendChild(row); });
   body.appendChild(list);
-  openModal({ title: 'Продажі', body, actions: [{ label: 'OK', class: 'primary', onClick: () => { list.querySelectorAll('input').forEach(inp => { const emp = state.employees.find(e => e.id === inp.dataset.id); if (emp) emp[inp.dataset.field] = parseFloat(inp.value) || 0; }); computePays(); persist(); renderEmployeesTable(); closeModal(); showToast('Збережено', 'success'); } }] });
+  openModal({ title: 'Продажі', body, actions: [{ label: 'OK', class: 'primary', onClick: () => { list.querySelectorAll('input').forEach(inp => { const emp = state.employees.find(e => e.id === inp.dataset.id); if (emp) emp[inp.dataset.field] = parseFloat(inp.value) || 0; }); recalcPersistRender('Збережено'); closeModal(); } }] });
 }
 
 export function clearHours() {
   state.employees.forEach(e => { e.hoursText = ''; e.hoursMinutes = 0; e.sales = 0; e.gifts = 0; e.withheld = 0; e.pay = 0; });
-  computePays(); persist(); renderEmployeesTable(); showToast('Очищено години / продажі / утримання', 'success');
+  recalcPersistRender('Очищено години / продажі / утримання');
 }
 export function fullReset() { if (!confirm('Очистити всі дані?')) return; localStorage.removeItem('payroll_employees_v1'); localStorage.removeItem('payroll_meta_v1'); state.employees = []; renderEmployeesTable(); showToast('Скидання виконано', 'success'); }
 export function toggleTheme() { state.meta.theme = state.meta.theme === 'dark' ? 'light' : 'dark'; document.documentElement.classList.toggle('light', state.meta.theme === 'light'); persist(); }
@@ -153,11 +157,11 @@ export function openEmployeeContextMenu(e, id) {
   document.querySelectorAll('.context-menu').forEach(m => m.remove());
   const menu = document.createElement('div'); menu.className = 'context-menu';
   function add(label, cb) { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; b.onclick = () => { cb(); menu.remove(); document.removeEventListener('click', outside); }; menu.appendChild(b); }
-  add('Погодинна ставка', () => { const v = prompt('Ставка /год?', emp.hourlyRate || ''); if (v !== null) { const r = parseFloat(v.replace(/,/g, '.')); if (!isNaN(r)) { emp.rateType = 'hourly'; emp.hourlyRate = r; emp.basePay = 0; } } computePays(); persist(); renderEmployeesTable(); });
-  add('Офіціант (5%)', () => { emp.rateType = 'waiter'; emp.waiterPercent = 5; emp.hourlyRate = 0; emp.basePay = 0; computePays(); persist(); renderEmployeesTable(); });
-  add('Хостес (+2%)', () => { const v = prompt('Погодинна ставка хостес?', emp.hourlyRate || ''); if (v !== null) { const r = parseFloat(v.replace(/,/g, '.')); if (!isNaN(r)) { emp.rateType = 'hostess'; emp.hourlyRate = r; emp.hostessPercent = 2; emp.basePay = 0; } } computePays(); persist(); renderEmployeesTable(); });
-  add('Фіксована сума', () => { const v = prompt('Сума фіксу?', emp.basePay || ''); if (v !== null) { const r = parseFloat(v.replace(/,/g, '.')); if (!isNaN(r)) { emp.rateType = 'fixed'; emp.basePay = r; emp.hourlyRate = 0; } } computePays(); persist(); renderEmployeesTable(); });
-  if (emp.rateType === 'fixed') add('Прибрати FIX', () => { emp.rateType = 'hourly'; emp.hourlyRate = emp.basePay || emp.hourlyRate; emp.basePay = 0; computePays(); persist(); renderEmployeesTable(); });
+  add('Погодинна ставка', () => { const v = prompt('Ставка /год?', emp.hourlyRate || ''); if (v !== null) { const r = parseFloat(v.replace(/,/g, '.')); if (!isNaN(r)) { emp.rateType = 'hourly'; emp.hourlyRate = r; emp.basePay = 0; recalcPersistRender(); } } });
+  add('Офіціант (5%)', () => { emp.rateType = 'waiter'; emp.waiterPercent = 5; emp.hourlyRate = 0; emp.basePay = 0; recalcPersistRender(); });
+  add('Хостес (+2%)', () => { const v = prompt('Погодинна ставка хостес?', emp.hourlyRate || ''); if (v !== null) { const r = parseFloat(v.replace(/,/g, '.')); if (!isNaN(r)) { emp.rateType = 'hostess'; emp.hourlyRate = r; emp.hostessPercent = 2; emp.basePay = 0; recalcPersistRender(); } } });
+  add('Фіксована сума', () => { const v = prompt('Сума фіксу?', emp.basePay || ''); if (v !== null) { const r = parseFloat(v.replace(/,/g, '.')); if (!isNaN(r)) { emp.rateType = 'fixed'; emp.basePay = r; emp.hourlyRate = 0; recalcPersistRender(); } } });
+  if (emp.rateType === 'fixed') add('Прибрати FIX', () => { emp.rateType = 'hourly'; emp.hourlyRate = emp.basePay || emp.hourlyRate; emp.basePay = 0; recalcPersistRender(); });
   let x = e.pageX + 6; let y = e.pageY + 6;
   menu.style.position = 'absolute'; menu.style.visibility = 'hidden'; menu.style.top = y + 'px'; menu.style.left = x + 'px';
   document.body.appendChild(menu);

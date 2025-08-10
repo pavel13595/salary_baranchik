@@ -1,9 +1,18 @@
 // State management and persistence
+/**
+ * @typedef {import('./utils.js').Employee} Employee
+ * @typedef {Object} AppState
+ * @property {Employee[]} employees
+ * @property {{ theme: 'dark'|'light', lastUpdated: string|null }} meta
+ * @property {{ columns: any[], groupSubtotalMergeUntil: string, dateRow: boolean }} layout
+ * @property {{ city: string, reportDate: string }} settings
+ */
 export const STORAGE_KEY = 'payroll_employees_v1';
 export const STORAGE_META = 'payroll_meta_v1';
 export const LAYOUT_KEY = 'payroll_excel_layout_v1';
 export const STORAGE_SETTINGS = 'payroll_settings_v1';
 
+/** @type {AppState} */
 export const state = {
   employees: [],
   meta: { theme: 'dark', lastUpdated: null },
