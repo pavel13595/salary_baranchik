@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Розрахунок заробітної плати</title>
+  <!-- Modular CSS structure: order matters (variables -> base -> layout -> components -> tables -> modal -> excel editor -> utilities) -->
+  <link rel="stylesheet" href="css/variables.css" />
+  <link rel="stylesheet" href="css/base.css" />
+  <link rel="stylesheet" href="css/layout.css" />
+  <link rel="stylesheet" href="css/components.css" />
+  <link rel="stylesheet" href="css/table.css" />
+  <link rel="stylesheet" href="css/modal.css" />
+  <link rel="stylesheet" href="css/excel-editor.css" />
+  <link rel="stylesheet" href="css/utilities.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <header class="app-header">
+    <h1>Зарплатна відомість</h1>
+    <div class="actions-row">
+      <div class="action-group">
+        <button id="importEmployeesBtn" class="primary">Завантажити співробітників</button>
+        <button id="editEmployeesBtn">Редагувати</button>
+        <button id="inputHoursBtn" class="accent">Імпорт годин</button>
+        <button id="clearHoursBtn" class="warn subtle">Очистити години/продажі</button>
+        <button id="fullResetBtn" class="danger subtle">Повне скидання (localStorage)</button>
+        <button id="themeToggleBtn" title="Перемикач теми">🌓</button>
+      </div>
+      <div class="meta-group">
+        <div class="field"><input id="cityInput" type="text" placeholder="Місто" /></div>
+        <div class="field"><input id="reportDateInput" type="date" /></div>
+        <button id="exportExcelBtn" class="outline-accent">Експорт в Excel</button>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section id="employeesPanel" class="panel">
+      <h2>Співробітники та розрахунок</h2>
+      <div id="employeesTableContainer" class="table-container"></div>
+    </section>
+  </main>
+
+  <div id="modalLayer" class="modal-layer hidden"></div>
+
+  <template id="employeeRowTemplate">
+    <tr class="emp-row" data-id="">
+      <td class="order"></td>
+      <td class="group"></td>
+      <td class="name"></td>
+      <td class="position"></td>
+      <td class="rate"></td>
+      <td class="hours editable" data-field="hours" contenteditable="true"></td>
+      <td class="sales editable" data-field="sales" contenteditable="true"></td>
+      <td class="gifts editable" data-field="gifts" contenteditable="true"></td>
+      <td class="pay"></td>
+    </tr>
+  </template>
+
+  <footer class="app-footer">
+    <small>Могилевский Павел</small>
+  </footer>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js" crossorigin="anonymous"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

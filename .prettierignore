@@ -1,0 +1,18 @@
+# Build artifacts
+/dist
+/build
+
+# Dependencies
+node_modules
+
+# Generated assets
+*.min.js
+*.min.css
+
+# Lockfiles (if added later)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# Misc
+.DS_Store

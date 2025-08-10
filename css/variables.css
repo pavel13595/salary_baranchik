@@ -1,0 +1,49 @@
+/* variables.css
+ * Глобальні CSS змінні (темні та світлі теми), типографіка, базові кольори
+ */
+
+:root {
+  /* Base surfaces */
+  --bg: #0f1115;
+  --bg-alt: #181c23;
+  --panel: #1f242d;
+  --panel-alt: #262d38;
+
+  /* Text */
+  --text: #e6eaf1;
+  --text-dim: #96a0b2;
+
+  /* Accent & gradients */
+  --accent: #4f9cff;
+  --accent-grad: linear-gradient(135deg, #4f9cff, #5f6fff 60%, #9b51ff);
+
+  /* Semantic colors */
+  --border: #2f3844;
+  --danger: #ff4d61;
+  --warn: #ffa600;
+  --success: #2ecc71;
+
+  /* Radius & focus */
+  --radius: 14px;
+  --focus: 0 0 0 2px rgba(79, 156, 255, 0.4);
+
+  /* Typography */
+  font-family: 'Inter', system-ui, sans-serif;
+
+}
+
+/* Light theme overrides */
+.light {
+  --bg: #f5f7fb;
+  --bg-alt: #fff;
+  --panel: #ffffff;
+  --panel-alt: #f1f4f9;
+  --text: #1b2430;
+  --text-dim: #64707f;
+  --border: #dae2ec;
+  --accent: #2563eb;
+  --accent-grad: linear-gradient(135deg, #2563eb, #6366f1 60%, #9333ea);
+  --danger: #dc2626;
+  --warn: #d97706;
+  --success: #059669;
+}

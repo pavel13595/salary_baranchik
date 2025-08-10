@@ -1,0 +1,164 @@
+/* excel-editor.css
+ * Стилі редактора макету Excel (layout editor / preview)
+ */
+
+ .layout-modal-top {
+	position: sticky;
+	top: 0;
+	z-index: 5;
+	background: var(--panel);
+	padding: 8px 0 12px;
+	border-bottom: 1px solid var(--border);
+	margin-bottom: 14px;
+}
+.layout-modal-top .inline-fields { align-items: flex-end; }
+
+ .layout-columns-scroll {
+	max-height: 360px;
+	overflow: auto;
+	padding: 6px 8px 14px 6px;
+	border: 1px solid var(--border);
+	border-radius: 16px;
+	background: var(--panel-alt);
+}
+.layout-grid {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
+	gap: 10px;
+}
+
+ .layout-cell {
+	background: var(--panel);
+	border: 1px solid var(--border);
+	padding: 6px 8px 10px;
+	border-radius: 12px;
+	display: flex;
+	flex-direction: column;
+	gap: 6px;
+	min-width: 0;
+	position: relative;
+}
+.layout-cell header {
+	display: flex;
+	gap: 4px;
+	align-items: center;
+}
+.layout-cell header input {
+	flex: 1;
+	min-width: 0;
+	font-size: .55rem;
+	padding: 4px 6px;
+}
+.layout-cell footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	margin-top: 4px;
+}
+.layout-cell footer small {
+	font-size: .5rem;
+	letter-spacing: .8px;
+	opacity: .7;
+}
+
+ .layout-mini-sample {
+	font-size: .55rem;
+	background: var(--panel-alt);
+	border: 1px solid var(--border);
+	border-radius: 8px;
+	padding: 4px 6px;
+	line-height: 1.2;
+	display: flex;
+	justify-content: space-between;
+	gap: 6px;
+}
+.layout-mini-sample span {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	max-width: 70%;
+}
+.layout-mini-sample code {
+	font-size: .55rem;
+	opacity: .7;
+}
+ .layout-cell.dragging { opacity: .45; outline: 2px dashed var(--accent); }
+
+ .layout-preview-wrapper { margin-top: 18px; display: grid; gap: 18px; }
+@media (min-width: 1100px) {
+	.layout-preview-wrapper { grid-template-columns: 1fr 1fr; }
+}
+ .preview-block {
+	background: var(--panel);
+	border: 1px solid var(--border);
+	border-radius: 16px;
+	padding: 14px 16px 18px;
+}
+.preview-block h4 {
+	font-size: .65rem;
+	margin: 0 0 8px;
+	letter-spacing: .8px;
+	font-weight: 600;
+	color: var(--text-dim);
+}
+.preview-scroller { overflow: auto; max-height: 260px; }
+.layout-preview-table { width: 100%; border-collapse: collapse; font-size: .58rem; }
+.layout-preview-table th,
+.layout-preview-table td {
+	border: 1px solid var(--border);
+	padding: 4px 6px;
+	text-align: center;
+	white-space: nowrap;
+}
+.layout-preview-table th { background: var(--panel-alt); position: sticky; top: 0; }
+
+ .badge-action {
+	background: var(--accent-grad);
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	font-weight: 600;
+	font-size: .55rem;
+	cursor: pointer;
+}
+
+ .excel-layout-shell { display: flex; flex-direction: column; gap: 18px; }
+@media (min-width: 1150px) {
+	.excel-layout-main { display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start; }
+}
+ .excel-layout-main { display: flex; flex-direction: column; gap: 24px; }
+.excel-columns-panel {
+	background: var(--panel-alt);
+	border: 1px solid var(--border);
+	border-radius: 18px;
+	padding: 18px 20px 20px;
+	display: flex;
+	flex-direction: column;
+	gap: 16px;
+	min-height: 200px;
+}
+.excel-columns-toolbar { display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; }
+.excel-columns-toolbar .input { min-width: 160px; }
+.excel-columns-scroll { max-height: 340px; overflow: auto; padding: 6px 4px 4px; border: 1px solid var(--border); border-radius: 14px; background: var(--panel); }
+
+/* Overrides for editing state */
+ .layout-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+.layout-cell { background: var(--bg-alt); border: 1px solid var(--border); box-shadow: none; transition: .18s border-color, .18s background; }
+.layout-cell:hover { border-color: var(--accent); }
+.layout-cell header input { background: var(--panel-alt); }
+.layout-mini-sample { background: var(--panel-alt); border: none; border-radius: 8px; }
+.layout-mini-sample code { display: none; }
+.layout-cell footer small { opacity: .5; }
+
+ .excel-previews { display: flex; flex-direction: column; gap: 18px; }
+@media (min-width: 1150px) { .excel-previews { position: sticky; top: 40px; } }
+.preview-block { background: var(--panel-alt); border-radius: 18px; padding: 16px 18px 20px; border: 1px solid var(--border); }
+.preview-block h4 { font-size: .62rem; letter-spacing: .7px; }
+.preview-scroller { max-height: 260px; }
+.layout-preview-table { font-size: .55rem; }
+.layout-preview-table th { background: var(--panel); }
+
+ #addColBtn { background: var(--panel); border: 1px solid var(--border); color: var(--text); box-shadow: none; }
+#addColBtn:hover { background: var(--accent); color: #fff; }
+.modal .excel-layout-shell button.primary { background: var(--accent); }
+.excel-columns-scroll::-webkit-scrollbar-thumb { background: var(--panel-alt); }

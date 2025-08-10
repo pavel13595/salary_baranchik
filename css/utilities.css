@@ -1,0 +1,24 @@
+/* utilities.css
+ * Утилітарні класи, анімації, скролбар, допоміжні дрібниці
+ */
+
+.drag-handle { cursor: grab; }
+.fade-in { animation: fadeIn .6s ease; }
+
+@keyframes fadeIn {
+	from { opacity: 0; transform: translateY(6px); }
+	to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+	0% { transform: translateY(18px); opacity: 0; }
+	100% { transform: translateY(0); opacity: 1; }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--bg-alt); }
+::-webkit-scrollbar-thumb { background: var(--panel-alt); border-radius: 20px; border: 2px solid var(--bg-alt); }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }
+
+/* Highlight */
+.search-highlight { background: linear-gradient(90deg,#9333ea33,#2563eb33); border-radius: 4px; padding: 0 2px; }
