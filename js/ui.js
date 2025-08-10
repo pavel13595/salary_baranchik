@@ -65,7 +65,26 @@ function onCellEdit(e) {
   const td = e.currentTarget; const tr = td.closest('tr'); if (!tr) return; const id = tr.dataset.id; const emp = state.employees.find(x => x.id === id); if (!emp) return;
   const field = td.dataset.field; const val = td.textContent.trim();
   if (field === 'sales' || field === 'gifts' || field === 'withheld') { emp[field] = parseFloat(val.replace(/,/g, '.')) || 0; }
-  else if (field === 'hoursText') { emp.hoursText = val; const clean = val.replace(/\s+/g, ''); const m = clean.match(/(\d{1,2}:\d{2})-(\d{1,2}:\d{2})/); if (m) { emp.hoursMinutes = diffMinutes(m[1], m[2]); } else { emp.hoursMinutes = 0; } }
+  else if (field === 'hoursText') {
+    emp.hoursText = val;
+    const clean = val.replace(/\s+/g, '');
+    const m = clean.match(/^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
+    if (m) {
+      // basic hour/minute bounds validation
+      const validTime = t => { const [h, mi] = t.split(':').map(Number); return h>=0 && h<24 && mi>=0 && mi<60; };
+      if (validTime(m[1]) && validTime(m[2])) {
+        emp.hoursMinutes = diffMinutes(m[1], m[2]);
+        td.classList.remove('invalid');
+      } else {
+        emp.hoursMinutes = 0; td.classList.add('invalid');
+      }
+    } else if (/^(в|вихід|вихідн|вибув)$/i.test(clean) || clean === '') {
+      // allowed special tokens or empty
+      emp.hoursMinutes = 0; td.classList.remove('invalid');
+    } else {
+      emp.hoursMinutes = 0; td.classList.add('invalid');
+    }
+  }
   recalcPersistRender();
 }
 
