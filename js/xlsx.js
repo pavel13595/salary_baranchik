@@ -59,6 +59,22 @@ function buildReportData() {
 export async function exportExcel() {
   // Safety: ensure latest calculations (in case something changed without re-render)
   computePays();
+  // Block export if any invalid hours exist (data integrity safeguard)
+  try {
+    const hoursInvalid = state.employees.some(emp => {
+      const raw = (emp.hoursText || '').trim();
+      if (!raw) return false; // empty allowed
+      const clean = raw.replace(/\s+/g, '');
+      // Allowed tokens for absence / special status
+      if (/^(в|вихід|вихідн|вибув)$/i.test(clean)) return false;
+      const m = clean.match(/^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
+      if (!m) return true; // pattern mismatch
+      const validTime = t => { const [h, mi] = t.split(':').map(Number); return h >= 0 && h < 24 && mi >= 0 && mi < 60; };
+      if (!(validTime(m[1]) && validTime(m[2]))) return true;
+      return false;
+    });
+    if (hoursInvalid) { showToast('Є некоректно введений час — виправте перед експортом', 'error', 6000); return; }
+  } catch (e) { /* fail-safe: if validation throws, continue with export attempt */ }
   if (window.ExcelJS) { return exportExcelExcelJS(); }
   if (!state.employees.length) { showToast('Немає даних', 'error'); return; }
   if (!window.XLSX) { showToast('XLSX не завантажено', 'error'); return; }
@@ -81,6 +97,21 @@ export async function exportExcel() {
 
 async function exportExcelExcelJS() {
   computePays();
+  // Duplicate guard (in case exportExcelExcelJS invoked directly or by future refactor)
+  try {
+    const hoursInvalid = state.employees.some(emp => {
+      const raw = (emp.hoursText || '').trim();
+      if (!raw) return false;
+      const clean = raw.replace(/\s+/g, '');
+      if (/^(в|вихід|вихідн|вибув)$/i.test(clean)) return false;
+      const m = clean.match(/^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
+      if (!m) return true;
+      const validTime = t => { const [h, mi] = t.split(':').map(Number); return h >= 0 && h < 24 && mi >= 0 && mi < 60; };
+      if (!(validTime(m[1]) && validTime(m[2]))) return true;
+      return false;
+    });
+    if (hoursInvalid) { showToast('Є некоректно введений час — виправте перед експортом', 'error', 6000); return; }
+  } catch (_) { }
   if (!state.employees.length) { showToast('Немає даних', 'error'); return; }
   const { data, merges, repDateStr } = buildReportData();
   const citySegment = state.settings.city ? state.settings.city.replace(/\s+/g, '_') : 'Місто';
