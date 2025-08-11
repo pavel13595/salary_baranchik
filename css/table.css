@@ -3,77 +3,109 @@
  */
 
 .payroll-table {
-	width: 100%;
-	border-collapse: collapse;
-	font-size: .8rem;
-	line-height: 1.25;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+  line-height: 1.25;
 }
 .payroll-table th,
 .payroll-table td {
-	padding: 8px 10px;
-	text-align: left;
-	border-bottom: 1px solid var(--border);
-	vertical-align: top;
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
 }
 .payroll-table th {
-	position: sticky;
-	top: 0;
-	background: var(--panel-alt);
-	font-size: .7rem;
-	letter-spacing: .8px;
-	text-transform: uppercase;
-	color: var(--text-dim);
-	font-weight: 600;
-	backdrop-filter: blur(6px);
+  position: sticky;
+  top: 0;
+  background: var(--panel-alt);
+  font-size: 0.7rem;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 600;
+  backdrop-filter: blur(6px);
 }
 .payroll-table th:nth-child(2),
-.payroll-table td:nth-child(2) { text-align: center; }
-.payroll-table tbody tr:last-child td { border-bottom: none; }
-
-.payroll-table tbody tr.group-row td {
-	background: rgba(255,255,255,.04);
-	font-weight: 600;
-	color: var(--accent);
-	font-size: .75rem;
-	letter-spacing: 1px;
-	text-transform: uppercase;
-	padding: 14px 14px;
-	border-top: 2px solid var(--border);
-	border-bottom: 2px solid var(--border);
-	background: linear-gradient(90deg,var(--panel-alt),rgba(0,0,0,0));
+.payroll-table td:nth-child(2) {
+  text-align: center;
+}
+.payroll-table tbody tr:last-child td {
+  border-bottom: none;
 }
 
-.payroll-table td.editable { cursor: text; background: rgba(255,255,255,.02); min-width: 90px; }
-.payroll-table td.editable:focus { outline: 1px solid var(--accent); background: rgba(79,156,255,.08); }
-.payroll-table td.editable.invalid { color: #ff4d61; font-weight: 600; box-shadow: none; }
-.payroll-table td.pay { font-weight: 600; color: var(--success); }
-.payroll-table tr:hover { background: rgba(255,255,255,.02); }
+.payroll-table tbody tr.group-row td {
+  background: rgba(255, 255, 255, 0.04);
+  font-weight: 600;
+  color: var(--accent);
+  font-size: 0.75rem;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 14px 14px;
+  border-top: 2px solid var(--border);
+  border-bottom: 2px solid var(--border);
+  background: linear-gradient(90deg, var(--panel-alt), rgba(0, 0, 0, 0));
+}
 
-.mark-need-sales { background: linear-gradient(90deg, rgba(255,166,0,.18), transparent); }
-.mark-fixed { background: linear-gradient(90deg, rgba(99,102,241,.15), transparent); }
+.payroll-table td.editable {
+  cursor: text;
+  background: rgba(255, 255, 255, 0.02);
+  min-width: 90px;
+}
+.payroll-table td.editable:focus {
+  outline: 1px solid var(--accent);
+  background: rgba(79, 156, 255, 0.08);
+}
+.payroll-table td.editable.invalid {
+  color: #ff4d61;
+  font-weight: 600;
+  box-shadow: none;
+}
+.payroll-table td.pay {
+  font-weight: 600;
+  color: var(--success);
+}
+.payroll-table tr:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.mark-need-sales {
+  background: linear-gradient(90deg, rgba(255, 166, 0, 0.18), transparent);
+}
+.mark-fixed {
+  background: linear-gradient(90deg, rgba(99, 102, 241, 0.15), transparent);
+}
 
 /* Context menu */
 .context-menu {
-	position: fixed;
-	z-index: 300;
-	background: var(--panel);
-	border: 1px solid var(--border);
-	border-radius: 10px;
-	padding: 6px 0;
-	min-width: 200px;
-	box-shadow: 0 8px 28px -8px rgba(0,0,0,.6);
-	animation: fadeIn .16s ease;
+  position: fixed;
+  z-index: 300;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 6px 0;
+  min-width: 200px;
+  box-shadow: 0 8px 28px -8px rgba(0, 0, 0, 0.6);
+  animation: fadeIn 0.16s ease;
 }
 .context-menu button {
-	width: 100%;
-	background: transparent;
-	border: none;
-	border-radius: 0;
-	justify-content: flex-start;
-	font-size: .7rem;
-	padding: 8px 14px;
-	text-align: left;
-	gap: 10px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  justify-content: flex-start;
+  font-size: 0.7rem;
+  padding: 8px 14px;
+  text-align: left;
+  gap: 10px;
 }
-.context-menu button:hover { background: var(--panel-alt); transform: none; box-shadow: none; }
-.context-menu hr { border: none; border-top: 1px solid var(--border); margin: 6px 0; }
+.context-menu button:hover {
+  background: var(--panel-alt);
+  transform: none;
+  box-shadow: none;
+}
+.context-menu hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 6px 0;
+}

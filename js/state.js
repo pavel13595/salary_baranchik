@@ -26,12 +26,12 @@ export const state = {
       { key: 'gifts', title: 'Утримано', width: 12, enabled: true },
       { key: 'issued', title: 'Видано', width: 12, enabled: true },
       { key: 'total', title: 'Всього нараховано', width: 18, enabled: true },
-      { key: 'sign', title: 'Підпис отримувача', width: 18, enabled: true }
+      { key: 'sign', title: 'Підпис отримувача', width: 18, enabled: true },
     ],
     groupSubtotalMergeUntil: 'issued',
-    dateRow: true
+    dateRow: true,
   },
-  settings: { city: '', reportDate: '' }
+  settings: { city: '', reportDate: '' },
 };
 
 export const defaultLayout = JSON.parse(JSON.stringify(state.layout));
@@ -46,9 +46,13 @@ export function loadState() {
     if (layout) state.layout = { ...state.layout, ...JSON.parse(layout) };
     const settings = localStorage.getItem(STORAGE_SETTINGS);
     if (settings) state.settings = { ...state.settings, ...JSON.parse(settings) };
-  } catch (e) { console.error('Помилка завантаження стану', e); }
+  } catch (e) {
+    console.error('Помилка завантаження стану', e);
+  }
   if (!state.settings.reportDate) {
-    const d = new Date(); d.setDate(d.getDate() - 1); state.settings.reportDate = d.toISOString().slice(0, 10);
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    state.settings.reportDate = d.toISOString().slice(0, 10);
   }
   document.documentElement.classList.toggle('light', state.meta.theme === 'light');
 }
