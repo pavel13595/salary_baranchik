@@ -42,7 +42,12 @@ function buildReportData() {
   const totalColIndex = FIXED_LAYOUT.findIndex(c => c.key === 'total');
   const subgroupMap = new Map(); SUBGROUPS.forEach(sg => subgroupMap.set(sg.name, []));
   for (const emp of state.employees) { if (isDayOff(emp)) continue; if (!(emp.rateType === 'fixed' || emp.hoursMinutes > 0)) continue; const sg = classifySubgroup(emp.position); if (!subgroupMap.has(sg)) subgroupMap.set(sg, []); subgroupMap.get(sg).push(emp); }
-  function rateDisp(e) { return rateDisplay(e); }
+  function rateDisp(e) {
+    const base = rateDisplay(e);
+    // Convert decimal separator for numeric hourly/fixed rates to comma (e.g. 120.50 -> 120,50)
+    if (/^\d+(?:\.\d+)?$/.test(base)) return base.replace('.', ',');
+    return base;
+  }
   function hoursF(e) { return e.hoursMinutes ? (e.hoursMinutes / 60).toFixed(2) : (e.hoursMinutes === 0 ? '0' : ''); }
   let totalAll = 0;
   for (const sg of SUBGROUPS.map(s => s.name)) {
