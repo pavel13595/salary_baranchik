@@ -102,15 +102,21 @@ function buildReportData() {
       row.push(hoursVal); // C hours numeric (fixed -> 1)
       const rVal = rateDisp(e);
       row.push(rVal); // D rate (hourly/fixed or percent decimal for waiter)
-      // Sales: only for roles that actually have sales impacting formula (waiter, hostess, bar)
-      const salesVal =
+      // Sales (net): only for roles with sales impact; subtract gifts (подарки) if such fields exist
+      let rawSales = 0;
+      if (
         e.rateType === 'waiter' ||
         /бар/i.test(e.position) ||
         /бармен/i.test(e.position) ||
         /хостес/i.test(e.position)
-          ? Number(e.sales || 0)
-          : 0;
-      row.push(salesVal); // E sales numeric (0 allowed)
+      ) {
+        rawSales = Number(e.sales || 0);
+      }
+      const gifts = Number(
+        e.gifts ?? e.gift ?? e.giftAmount ?? e.presents ?? e.presentAmount ?? e.podarok ?? e.podarki ?? 0
+      );
+      const netSales = rawSales - (isNaN(gifts) ? 0 : gifts);
+      row.push(netSales > 0 ? netSales : 0); // E net sales (never negative)
       const withheldVal = Number(e.withheld || 0);
       row.push(withheldVal); // F withheld numeric (0 allowed)
       row.push(0); // G issued numeric default 0
