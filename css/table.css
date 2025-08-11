@@ -11,7 +11,7 @@
 .payroll-table th,
 .payroll-table td {
   padding: 8px 10px;
-  text-align: left;
+  text-align: center;
   border-bottom: 1px solid var(--border);
   vertical-align: top;
 }
@@ -26,10 +26,7 @@
   font-weight: 600;
   backdrop-filter: blur(6px);
 }
-.payroll-table th:nth-child(2),
-.payroll-table td:nth-child(2) {
-  text-align: center;
-}
+/* Removed special 2nd-column centering since all columns are centered now */
 .payroll-table tbody tr:last-child td {
   border-bottom: none;
 }
@@ -41,10 +38,11 @@
   font-size: 0.75rem;
   letter-spacing: 1px;
   text-transform: uppercase;
-  padding: 14px 14px;
+  padding: 14px 14px 14px 10px; /* slightly closer to left edge */
   border-top: 2px solid var(--border);
   border-bottom: 2px solid var(--border);
   background: linear-gradient(90deg, var(--panel-alt), rgba(0, 0, 0, 0));
+  text-align: left; /* override global centering */
 }
 
 .payroll-table td.editable {
