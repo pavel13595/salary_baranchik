@@ -14,7 +14,10 @@
   text-align: center;
   border-bottom: 1px solid var(--border);
   vertical-align: top;
+  border-right: 1px solid var(--border);
 }
+.payroll-table th:last-child,
+.payroll-table td:last-child { border-right: none; }
 .payroll-table th {
   position: sticky;
   top: 0;
