@@ -88,6 +88,16 @@ export function renderEmployeesTable() {
   }
   rows.push('</tbody></table>');
   container.innerHTML = rows.join('');
+  // Attach scroll shadow toggle once table rendered
+  const host = container.closest('.table-container');
+  if (host && !host.dataset.scrollBound) {
+    const handler = () => {
+      if (host.scrollTop > 2) host.classList.add('scrolled'); else host.classList.remove('scrolled');
+    };
+    host.addEventListener('scroll', handler, { passive: true });
+    host.dataset.scrollBound = '1';
+    handler();
+  }
   container.querySelectorAll('td.editable').forEach((cell) => {
     cell.addEventListener('blur', onCellEdit);
     cell.addEventListener('keydown', (e) => {
