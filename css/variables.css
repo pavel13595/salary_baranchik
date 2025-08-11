@@ -29,7 +29,6 @@
 
   /* Typography */
   font-family: 'Inter', system-ui, sans-serif;
-
 }
 
 /* Light theme overrides */
@@ -43,7 +42,7 @@
   --border: #dae2ec;
   --accent: #2563eb;
   --accent-grad: linear-gradient(135deg, #2563eb, #6366f1 60%, #9333ea);
-  --danger: #dc2626;
-  --warn: #d97706;
+  --danger: #ff4d61;
+  --warn: #ffa600;
   --success: #059669;
 }

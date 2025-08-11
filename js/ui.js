@@ -92,7 +92,8 @@ export function renderEmployeesTable() {
   const host = container.closest('.table-container');
   if (host && !host.dataset.scrollBound) {
     const handler = () => {
-      if (host.scrollTop > 2) host.classList.add('scrolled'); else host.classList.remove('scrolled');
+      if (host.scrollTop > 2) host.classList.add('scrolled');
+      else host.classList.remove('scrolled');
     };
     host.addEventListener('scroll', handler, { passive: true });
     host.dataset.scrollBound = '1';

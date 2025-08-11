@@ -113,7 +113,14 @@ function buildReportData() {
         rawSales = Number(e.sales || 0);
       }
       const gifts = Number(
-        e.gifts ?? e.gift ?? e.giftAmount ?? e.presents ?? e.presentAmount ?? e.podarok ?? e.podarki ?? 0
+        e.gifts ??
+          e.gift ??
+          e.giftAmount ??
+          e.presents ??
+          e.presentAmount ??
+          e.podarok ??
+          e.podarki ??
+          0
       );
       const netSales = rawSales - (isNaN(gifts) ? 0 : gifts);
       row.push(netSales > 0 ? netSales : 0); // E net sales (never negative)
