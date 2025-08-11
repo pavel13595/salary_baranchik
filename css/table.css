@@ -45,8 +45,7 @@
 
 .payroll-table td.editable { cursor: text; background: rgba(255,255,255,.02); min-width: 90px; }
 .payroll-table td.editable:focus { outline: 1px solid var(--accent); background: rgba(79,156,255,.08); }
-.payroll-table td.editable.invalid { background: rgba(255,77,97,.12); box-shadow: inset 0 0 0 1px rgba(255,77,97,.6); position: relative; }
-.payroll-table td.editable.invalid:after { content: '✕'; position: absolute; top: 2px; right: 4px; font-size: .55rem; color: #ff4d61; opacity: .85; }
+.payroll-table td.editable.invalid { color: #ff4d61; font-weight: 600; box-shadow: none; }
 .payroll-table td.pay { font-weight: 600; color: var(--success); }
 .payroll-table tr:hover { background: rgba(255,255,255,.02); }
 

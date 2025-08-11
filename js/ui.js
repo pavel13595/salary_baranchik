@@ -35,13 +35,27 @@ export function renderEmployeesTable() {
   const rateDisp = rateDisplay(emp);
       const fixedTag = fixed ? '<span class="tag-fixed">FIX</span>' : '';
       const payInt = (typeof emp.pay === 'number') ? Math.round(emp.pay) : '';
-      const hoursEsc = escapeHtml(emp.hoursText || '');
+      const rawHours = emp.hoursText || '';
+      const hoursEsc = escapeHtml(rawHours);
+      // Pre-render validation for hours so invalid stays highlighted across renders
+      let invalidHours = false;
+      const clean = rawHours.replace(/\s+/g, '');
+      if (clean) {
+        const m = clean.match(/^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
+        if (m) {
+          const validTime = t => { const [h, mi] = t.split(':').map(Number); return h>=0 && h<24 && mi>=0 && mi<60; };
+          if (!(validTime(m[1]) && validTime(m[2]))) invalidHours = true;
+        } else if (!/^(в|вихід|вихідн|вибув)$/i.test(clean)) {
+          invalidHours = true;
+        }
+      }
+      const hoursTdClass = `editable${invalidHours ? ' invalid' : ''}`;
       rows.push(`<tr data-id='${emp.id}' class='${fixed ? 'mark-fixed' : ''}'>
         <td>${emp.order}</td>
         <td>${escapeHtml(emp.name)}</td>
         <td>${escapeHtml(emp.position)} ${fixedTag}</td>
         <td>${rateDisp}</td>
-        <td class='editable' data-field='hoursText' contenteditable='true' title='Формат 10:00-21:30'>${hoursEsc}</td>
+        <td class='${hoursTdClass}' data-field='hoursText' contenteditable='true' title='Формат 10:00-21:30'>${hoursEsc}</td>
         <td class='editable' data-field='sales' contenteditable='true'>${escapeHtml(String(emp.sales || ''))}</td>
         <td class='editable' data-field='gifts' contenteditable='true'>${escapeHtml(String(emp.gifts || ''))}</td>
         <td class='editable' data-field='withheld' contenteditable='true'>${escapeHtml(String(emp.withheld || ''))}</td>
@@ -64,28 +78,34 @@ export function renderEmployeesTable() {
 function onCellEdit(e) {
   const td = e.currentTarget; const tr = td.closest('tr'); if (!tr) return; const id = tr.dataset.id; const emp = state.employees.find(x => x.id === id); if (!emp) return;
   const field = td.dataset.field; const val = td.textContent.trim();
-  if (field === 'sales' || field === 'gifts' || field === 'withheld') { emp[field] = parseFloat(val.replace(/,/g, '.')) || 0; }
-  else if (field === 'hoursText') {
+  if (field === 'sales' || field === 'gifts' || field === 'withheld') {
+    emp[field] = parseFloat(val.replace(/,/g, '.')) || 0;
+    recalcPersistRender();
+    return;
+  }
+  if (field === 'hoursText') {
     emp.hoursText = val;
     const clean = val.replace(/\s+/g, '');
+    let invalid = false;
     const m = clean.match(/^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
     if (m) {
-      // basic hour/minute bounds validation
       const validTime = t => { const [h, mi] = t.split(':').map(Number); return h>=0 && h<24 && mi>=0 && mi<60; };
-      if (validTime(m[1]) && validTime(m[2])) {
-        emp.hoursMinutes = diffMinutes(m[1], m[2]);
-        td.classList.remove('invalid');
-      } else {
-        emp.hoursMinutes = 0; td.classList.add('invalid');
-      }
+      if (validTime(m[1]) && validTime(m[2])) { emp.hoursMinutes = diffMinutes(m[1], m[2]); }
+      else { emp.hoursMinutes = 0; invalid = true; }
     } else if (/^(в|вихід|вихідн|вибув)$/i.test(clean) || clean === '') {
-      // allowed special tokens or empty
-      emp.hoursMinutes = 0; td.classList.remove('invalid');
+      emp.hoursMinutes = 0; // acceptable tokens
+    } else { emp.hoursMinutes = 0; invalid = true; }
+    if (invalid) {
+      if (!td.classList.contains('invalid')) {
+        td.classList.add('invalid');
+        showToast('Некоректний формат часу. Використовуйте HH:MM-HH:MM', 'error', 5000);
+      }
+      return;
     } else {
-      emp.hoursMinutes = 0; td.classList.add('invalid');
+      td.classList.remove('invalid');
+      recalcPersistRender();
     }
   }
-  recalcPersistRender();
 }
 
 function recalcPersistRender(toast, type='success') {
