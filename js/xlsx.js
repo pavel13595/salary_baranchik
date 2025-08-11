@@ -103,9 +103,10 @@ function buildReportData() {
         /хостес/i.test(e.position)
           ? Number(e.sales || 0)
           : 0;
-      row.push(salesVal); // E sales numeric
-      row.push(Number(e.withheld || 0)); // F withheld numeric
-      row.push(0); // G issued default 0 so formula safe
+      row.push(salesVal); // E sales numeric (0 allowed)
+      const withheldVal = Number(e.withheld || 0);
+      row.push(withheldVal); // F withheld numeric (0 allowed)
+      row.push(0); // G issued numeric default 0
       // Placeholder for total (H) will be formula later
       row.push('');
       row.push(''); // I sign
@@ -124,41 +125,38 @@ function buildReportData() {
       const isPacker = /пакувальниц|пакувальник|упаковщ|упаковщик/.test(pos);
       const isCourier = /кур[’'`]?єр|курьер/.test(pos);
       // Base patterns using columns: C hours, D rate, E sales, F withheld, G issued
-      const n = (col) => `N(${col})`;
       if (subgroupName === 'Бар') {
-        // (D*C) - F - G + E*0.05  (5%) with safe coercion
-        formula = `(${n(f('D'))}*${n(f('C'))})-${n(f('F'))}-${n(f('G'))}+${n(f('E'))}*0.05`;
+        formula = `(${f('D')}*${f('C')})-${f('F')}-${f('G')}+${f('E')}*0.05`;
       } else if (subgroupName === 'Адмін. Персонал') {
-        formula = `${n(f('D'))}*${n(f('C'))}-${n(f('F'))}-${n(f('G'))}`;
+        formula = `${f('D')}*${f('C')}-${f('F')}-${f('G')}`;
       } else if (subgroupName === 'Кухня') {
-        formula = `${n(f('D'))}*${n(f('C'))}-${n(f('F'))}-${n(f('G'))}`;
+        formula = `${f('D')}*${f('C')}-${f('F')}-${f('G')}`;
       } else if (subgroupName === 'Офіціанти / ранери') {
         if (isWaiter) {
-          // E*D-G-F  (order not critical)
-          formula = `${n(f('E'))}*${n(f('D'))}-${n(f('G'))}-${n(f('F'))}`;
+          formula = `${f('E')}*${f('D')}-${f('G')}-${f('F')}`;
         } else if (isRunner) {
-          formula = `${n(f('C'))}*${n(f('D'))}-${n(f('G'))}-${n(f('F'))}`;
+          formula = `${f('C')}*${f('D')}-${f('G')}-${f('F')}`;
         } else {
-          formula = `${n(f('C'))}*${n(f('D'))}-${n(f('F'))}-${n(f('G'))}`; // fallback hourly
+          formula = `${f('C')}*${f('D')}-${f('F')}-${f('G')}`;
         }
       } else if (subgroupName === 'Хостес / Доставка') {
         if (isHostess) {
-          formula = `${n(f('D'))}*${n(f('C'))}+${n(f('E'))}*0.02-${n(f('F'))}-${n(f('G'))}`; // 2%
+          formula = `${f('D')}*${f('C')}+${f('E')}*0.02-${f('F')}-${f('G')}`;
         } else if (isPacker) {
-          formula = `${n(f('C'))}*${n(f('D'))}-${n(f('G'))}-${n(f('F'))}`;
+          formula = `${f('C')}*${f('D')}-${f('G')}-${f('F')}`;
         } else {
-          formula = `${n(f('C'))}*${n(f('D'))}-${n(f('F'))}-${n(f('G'))}`;
+          formula = `${f('C')}*${f('D')}-${f('F')}-${f('G')}`;
         }
       } else if (subgroupName === 'Господарка') {
-        formula = `${n(f('C'))}*${n(f('D'))}-${n(f('G'))}-${n(f('F'))}`;
+        formula = `${f('C')}*${f('D')}-${f('G')}-${f('F')}`;
       } else if (subgroupName === 'Інший персонал') {
         if (isCourier) {
-          formula = `${n(f('C'))}*${n(f('D'))}-${n(f('G'))}-${n(f('F'))}`;
+          formula = `${f('C')}*${f('D')}-${f('G')}-${f('F')}`;
         } else {
-          formula = `${n(f('D'))}*${n(f('C'))}-${n(f('F'))}-${n(f('G'))}`;
+          formula = `${f('D')}*${f('C')}-${f('F')}-${f('G')}`;
         }
       } else {
-        formula = `${n(f('D'))}*${n(f('C'))}-${n(f('F'))}-${n(f('G'))}`;
+        formula = `${f('D')}*${f('C')}-${f('F')}-${f('G')}`;
       }
       formulaRows.push({
         rowNumber: excelRowNumber,
@@ -247,15 +245,21 @@ export async function exportExcel() {
       if (!ws[cellRef]) ws[cellRef] = { t: 'n', f: fr.formula };
       else ws[cellRef].f = fr.formula;
     });
-    // Number formatting: hours (C), rate (D), sales (E), totals (H)
+    // Number formatting: hours (C) -> 0.00 ; rate (D) integer except waiter percent -> 0% ; sales (E), withheld (F), issued (G), total (H) -> integer
     const rng = XLSX.utils.decode_range(ws['!ref']);
+    const waiterRateRows = new Set(
+      formulaRows.filter((fr) => fr.percentRate).map((fr) => fr.rowNumber)
+    );
     for (let r = 0; r <= rng.e.r; r++) {
+      const excelRow = r + 1;
       const cHours = XLSX.utils.encode_cell({ r, c: 2 });
       if (ws[cHours] && typeof ws[cHours].v === 'number') ws[cHours].z = '0.00';
       const cRate = XLSX.utils.encode_cell({ r, c: 3 });
-      if (ws[cRate] && typeof ws[cRate].v === 'number') ws[cRate].z = '0.00';
-      const cTotal = XLSX.utils.encode_cell({ r, c: 7 });
-      if (ws[cTotal] && (ws[cTotal].v === undefined || ws[cTotal].f)) ws[cTotal].z = '0.00';
+      if (ws[cRate] && typeof ws[cRate].v === 'number') ws[cRate].z = waiterRateRows.has(excelRow) ? '0%' : '0';
+      const cSales = XLSX.utils.encode_cell({ r, c: 4 }); if (ws[cSales] && typeof ws[cSales].v === 'number') ws[cSales].z = '0;-0;;';
+      const cWithheld = XLSX.utils.encode_cell({ r, c: 5 }); if (ws[cWithheld] && typeof ws[cWithheld].v === 'number') ws[cWithheld].z = '0;-0;;';
+      const cIssued = XLSX.utils.encode_cell({ r, c: 6 }); if (ws[cIssued] && typeof ws[cIssued].v === 'number') ws[cIssued].z = '0;-0;;';
+      const cTotal = XLSX.utils.encode_cell({ r, c: 7 }); if (ws[cTotal] && (ws[cTotal].v === undefined || ws[cTotal].f || typeof ws[cTotal].v === 'number')) ws[cTotal].z = '0';
     }
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Відомість');
@@ -305,12 +309,16 @@ async function exportExcelExcelJS() {
     formulaRows.forEach((fr) => {
       const cell = ws.getCell('H' + fr.rowNumber);
       cell.value = { formula: fr.formula };
-      cell.numFmt = '0.00';
+      cell.numFmt = '0';
     });
     // Column formats
-    if (ws.getColumn(3)) ws.getColumn(3).numFmt = '0.00'; // hours
-    if (ws.getColumn(4)) ws.getColumn(4).numFmt = '0.00'; // rate default
-    // Percent rates for waiter rows: set individual cell format to percent
+    if (ws.getColumn(3)) ws.getColumn(3).numFmt = '0.00'; // hours keep 2 decimals
+    if (ws.getColumn(4)) ws.getColumn(4).numFmt = '0'; // rate integer
+  if (ws.getColumn(5)) ws.getColumn(5).numFmt = '0;-0;;'; // sales hide zero
+  if (ws.getColumn(6)) ws.getColumn(6).numFmt = '0;-0;;'; // withheld hide zero
+  if (ws.getColumn(7)) ws.getColumn(7).numFmt = '0;-0;;'; // issued hide zero
+    if (ws.getColumn(8)) ws.getColumn(8).numFmt = '0'; // total
+    // Percent rates for waiter rows: set individual cell format to percent (override integer)
     formulaRows
       .filter((fr) => fr.percentRate)
       .forEach((fr) => {
