@@ -38,6 +38,31 @@ export function diffMinutes(a, b) {
   let start = ah * 60 + am; let end = bh * 60 + bm; if (end < start) end += 1440; return end - start;
 }
 
+// Unified parse/validate of hours input. Returns { valid: boolean, minutes: number, token: string }
+export function parseHoursInterval(raw) {
+  const original = (raw || '').trim();
+  if (!original) return { valid: true, minutes: 0, token: 'empty' };
+  const clean = original.replace(/\s+/g, '');
+  // Day-off / absence tokens (UA/RU variants)
+  if (/^(в|вихід\w*|вибув\w*|виход\w*|выход\w*|выбыл\w*)$/i.test(clean)) {
+    return { valid: true, minutes: 0, token: 'dayoff' };
+  }
+  const m = clean.match(/^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
+  if (!m) return { valid: false, minutes: 0, token: 'pattern' };
+  const validTime = (t, isEnd=false) => {
+    const [h, mi] = t.split(':').map(Number);
+    if (isNaN(h) || isNaN(mi)) return false;
+    if (h < 0 || h > 24) return false;
+    if (mi < 0 || mi > 59) return false;
+    if (h === 24 && mi !== 0) return false; // only 24:00 allowed
+    if (!isEnd && h === 24) return false; // start cannot be 24:00
+    return true;
+  };
+  if (!(validTime(m[1]) && validTime(m[2], true))) return { valid: false, minutes: 0, token: 'range' };
+  const minutes = diffMinutes(m[1], m[2] === '24:00' ? '00:00' : m[2]);
+  return { valid: true, minutes, token: 'interval' };
+}
+
 /**
  * Human readable display of rate column (unified across UI / export)
  * @param {Employee} emp

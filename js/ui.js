@@ -1,4 +1,4 @@
-import { $, escapeHtml, diffMinutes, rateDisplay } from './utils.js';
+import { $, escapeHtml, diffMinutes, rateDisplay, parseHoursInterval } from './utils.js';
 import { state, persist } from './state.js';
 import { computePays, isDayOff } from './pay.js';
 import { applyHoursToEmployees, parseEmployeesBulk, parseHoursBulk } from './parse.js';
@@ -41,13 +41,8 @@ export function renderEmployeesTable() {
       let invalidHours = false;
       const clean = rawHours.replace(/\s+/g, '');
       if (clean) {
-        const m = clean.match(/^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
-        if (m) {
-          const validTime = t => { const [h, mi] = t.split(':').map(Number); return h>=0 && h<24 && mi>=0 && mi<60; };
-          if (!(validTime(m[1]) && validTime(m[2]))) invalidHours = true;
-        } else if (!/^(в|вихід|вихідн|вибув)$/i.test(clean)) {
-          invalidHours = true;
-        }
+        const parsed = parseHoursInterval(rawHours);
+        invalidHours = !parsed.valid;
       }
       const hoursTdClass = `editable${invalidHours ? ' invalid' : ''}`;
       rows.push(`<tr data-id='${emp.id}' class='${fixed ? 'mark-fixed' : ''}'>
@@ -73,6 +68,22 @@ export function renderEmployeesTable() {
     });
     container.dataset.ctxBound = '1';
   }
+  updateExportButtonState();
+}
+
+function updateExportButtonState() {
+  const btn = document.getElementById('exportExcelBtn');
+  if (!btn) return;
+  const anyInvalid = !!document.querySelector('#employeesTableContainer td.editable.invalid');
+  const hasEmployees = state.employees.length > 0;
+  if (!hasEmployees) {
+    btn.disabled = true; btn.title = 'Немає даних для експорту'; return;
+  }
+  if (anyInvalid) {
+    btn.disabled = true; btn.title = 'Виправте некоректні години щоб експортувати';
+  } else {
+    btn.disabled = false; btn.title = 'Експортувати Excel';
+  }
 }
 
 function onCellEdit(e) {
@@ -85,25 +96,19 @@ function onCellEdit(e) {
   }
   if (field === 'hoursText') {
     emp.hoursText = val;
-    const clean = val.replace(/\s+/g, '');
-    let invalid = false;
-    const m = clean.match(/^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
-    if (m) {
-      const validTime = t => { const [h, mi] = t.split(':').map(Number); return h>=0 && h<24 && mi>=0 && mi<60; };
-      if (validTime(m[1]) && validTime(m[2])) { emp.hoursMinutes = diffMinutes(m[1], m[2]); }
-      else { emp.hoursMinutes = 0; invalid = true; }
-    } else if (/^(в|вихід|вихідн|вибув)$/i.test(clean) || clean === '') {
-      emp.hoursMinutes = 0; // acceptable tokens
-    } else { emp.hoursMinutes = 0; invalid = true; }
-    if (invalid) {
+    const parsed = parseHoursInterval(val);
+    if (!parsed.valid) {
       if (!td.classList.contains('invalid')) {
         td.classList.add('invalid');
         showToast('Некоректний формат часу. Використовуйте HH:MM-HH:MM', 'error', 5000);
       }
+  updateExportButtonState();
       return;
     } else {
       td.classList.remove('invalid');
+      emp.hoursMinutes = parsed.minutes;
       recalcPersistRender();
+  updateExportButtonState();
     }
   }
 }
@@ -185,6 +190,8 @@ export function bindGlobalEvents() {
   $('#clearHoursBtn').onclick = clearHours;
   $('#fullResetBtn').onclick = fullReset;
   $('#themeToggleBtn').onclick = toggleTheme;
+  // Initial state of export button (in case of persisted invalid data)
+  requestAnimationFrame(updateExportButtonState);
   const cityInput = document.getElementById('cityInput');
   const dateInput = document.getElementById('reportDateInput');
   if (cityInput) { cityInput.value = state.settings.city; cityInput.addEventListener('change', () => { state.settings.city = cityInput.value.trim(); persist(); }); }

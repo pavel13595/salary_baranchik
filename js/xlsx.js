@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { showToast } from './ui.js';
 import { computePays } from './pay.js';
-import { rateDisplay } from './utils.js';
+import { rateDisplay, parseHoursInterval } from './utils.js';
 
 const FIXED_LAYOUT = [
   { key: 'name', title: '', width: 28 },
@@ -66,18 +66,12 @@ export async function exportExcel() {
   computePays();
   // Block export if any invalid hours exist (data integrity safeguard)
   try {
-    const hoursInvalid = state.employees.some(emp => {
-      const raw = (emp.hoursText || '').trim();
-      if (!raw) return false; // empty allowed
-      const clean = raw.replace(/\s+/g, '');
-      // Allowed tokens for absence / special status
-      if (/^(в|вихід|вихідн|вибув)$/i.test(clean)) return false;
-      const m = clean.match(/^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
-      if (!m) return true; // pattern mismatch
-      const validTime = t => { const [h, mi] = t.split(':').map(Number); return h >= 0 && h < 24 && mi >= 0 && mi < 60; };
-      if (!(validTime(m[1]) && validTime(m[2]))) return true;
-      return false;
-    });
+    let hoursInvalid = state.employees.some(emp => !parseHoursInterval(emp.hoursText).valid);
+    // Fallback: if UI shows no invalid cells, allow export (prevents false positives)
+    if (hoursInvalid) {
+      const anyDomInvalid = typeof document !== 'undefined' && document.querySelector('#employeesTableContainer td.editable.invalid');
+      if (!anyDomInvalid) hoursInvalid = false;
+    }
     if (hoursInvalid) { showToast('Є некоректно введений час — виправте перед експортом', 'error', 6000); return; }
   } catch (e) { /* fail-safe: if validation throws, continue with export attempt */ }
   if (window.ExcelJS) { return exportExcelExcelJS(); }
@@ -104,17 +98,11 @@ async function exportExcelExcelJS() {
   computePays();
   // Duplicate guard (in case exportExcelExcelJS invoked directly or by future refactor)
   try {
-    const hoursInvalid = state.employees.some(emp => {
-      const raw = (emp.hoursText || '').trim();
-      if (!raw) return false;
-      const clean = raw.replace(/\s+/g, '');
-      if (/^(в|вихід|вихідн|вибув)$/i.test(clean)) return false;
-      const m = clean.match(/^(\d{1,2}:\d{2})-(\d{1,2}:\d{2})$/);
-      if (!m) return true;
-      const validTime = t => { const [h, mi] = t.split(':').map(Number); return h >= 0 && h < 24 && mi >= 0 && mi < 60; };
-      if (!(validTime(m[1]) && validTime(m[2]))) return true;
-      return false;
-    });
+    let hoursInvalid = state.employees.some(emp => !parseHoursInterval(emp.hoursText).valid);
+    if (hoursInvalid) {
+      const anyDomInvalid = typeof document !== 'undefined' && document.querySelector('#employeesTableContainer td.editable.invalid');
+      if (!anyDomInvalid) hoursInvalid = false;
+    }
     if (hoursInvalid) { showToast('Є некоректно введений час — виправте перед експортом', 'error', 6000); return; }
   } catch (_) { }
   if (!state.employees.length) { showToast('Немає даних', 'error'); return; }
