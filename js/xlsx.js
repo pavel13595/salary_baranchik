@@ -56,6 +56,13 @@ function buildReportData() {
   data.push(dateRow);
   merges.push({ s: { r: 1, c: 1 }, e: { r: 1, c: headersLocal.length - 1 } });
   data.push(headersLocal);
+  // Ensure header titles explicitly for columns (some earlier transformations may override)
+  const headerIndex = data.length - 1;
+  if (data[headerIndex]) {
+    data[headerIndex][4] = 'Продажі';
+    data[headerIndex][5] = 'Утримано';
+    data[headerIndex][6] = 'Видано';
+  }
   let rowIdx = 3;
   const isDayOff = (emp) => /вихід|вибув/i.test(emp.hoursText || '');
   const totalColIndex = FIXED_LAYOUT.findIndex((c) => c.key === 'total');
@@ -255,11 +262,20 @@ export async function exportExcel() {
       const cHours = XLSX.utils.encode_cell({ r, c: 2 });
       if (ws[cHours] && typeof ws[cHours].v === 'number') ws[cHours].z = '0.00';
       const cRate = XLSX.utils.encode_cell({ r, c: 3 });
-      if (ws[cRate] && typeof ws[cRate].v === 'number') ws[cRate].z = waiterRateRows.has(excelRow) ? '0%' : '0';
-      const cSales = XLSX.utils.encode_cell({ r, c: 4 }); if (ws[cSales] && typeof ws[cSales].v === 'number') ws[cSales].z = '0;-0;;';
-      const cWithheld = XLSX.utils.encode_cell({ r, c: 5 }); if (ws[cWithheld] && typeof ws[cWithheld].v === 'number') ws[cWithheld].z = '0;-0;;';
-      const cIssued = XLSX.utils.encode_cell({ r, c: 6 }); if (ws[cIssued] && typeof ws[cIssued].v === 'number') ws[cIssued].z = '0;-0;;';
-      const cTotal = XLSX.utils.encode_cell({ r, c: 7 }); if (ws[cTotal] && (ws[cTotal].v === undefined || ws[cTotal].f || typeof ws[cTotal].v === 'number')) ws[cTotal].z = '0';
+      if (ws[cRate] && typeof ws[cRate].v === 'number')
+        ws[cRate].z = waiterRateRows.has(excelRow) ? '0%' : '0';
+      const cSales = XLSX.utils.encode_cell({ r, c: 4 });
+      if (ws[cSales] && typeof ws[cSales].v === 'number') ws[cSales].z = '0;-0;;';
+      const cWithheld = XLSX.utils.encode_cell({ r, c: 5 });
+      if (ws[cWithheld] && typeof ws[cWithheld].v === 'number') ws[cWithheld].z = '0;-0;;';
+      const cIssued = XLSX.utils.encode_cell({ r, c: 6 });
+      if (ws[cIssued] && typeof ws[cIssued].v === 'number') ws[cIssued].z = '0;-0;;';
+      const cTotal = XLSX.utils.encode_cell({ r, c: 7 });
+      if (
+        ws[cTotal] &&
+        (ws[cTotal].v === undefined || ws[cTotal].f || typeof ws[cTotal].v === 'number')
+      )
+        ws[cTotal].z = '0';
     }
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Відомість');
@@ -314,9 +330,9 @@ async function exportExcelExcelJS() {
     // Column formats
     if (ws.getColumn(3)) ws.getColumn(3).numFmt = '0.00'; // hours keep 2 decimals
     if (ws.getColumn(4)) ws.getColumn(4).numFmt = '0'; // rate integer
-  if (ws.getColumn(5)) ws.getColumn(5).numFmt = '0;-0;;'; // sales hide zero
-  if (ws.getColumn(6)) ws.getColumn(6).numFmt = '0;-0;;'; // withheld hide zero
-  if (ws.getColumn(7)) ws.getColumn(7).numFmt = '0;-0;;'; // issued hide zero
+    if (ws.getColumn(5)) ws.getColumn(5).numFmt = '0;-0;;'; // sales hide zero
+    if (ws.getColumn(6)) ws.getColumn(6).numFmt = '0;-0;;'; // withheld hide zero
+    if (ws.getColumn(7)) ws.getColumn(7).numFmt = '0;-0;;'; // issued hide zero
     if (ws.getColumn(8)) ws.getColumn(8).numFmt = '0'; // total
     // Percent rates for waiter rows: set individual cell format to percent (override integer)
     formulaRows
@@ -408,6 +424,17 @@ async function exportExcelExcelJS() {
         cell.font = { ...FONT, bold: true };
         cell.alignment = alignC;
         cell.border = { top: medium, bottom: medium, left: thin, right: thin };
+      });
+      // Force header labels for E/F/G (sales/withheld/issued) and set text format to avoid hiding
+      const labels = [
+        ['E', 'Продажі'],
+        ['F', 'Утримано'],
+        ['G', 'Видано'],
+      ];
+      labels.forEach(([col, text]) => {
+        const c = ws.getCell(col + headerRowIndex);
+        c.value = text;
+        c.numFmt = '@';
       });
     }
     for (let r = 1; r <= ws.rowCount; r++) {
