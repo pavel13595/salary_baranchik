@@ -205,7 +205,8 @@ export function importEmployeesFlow() {
   ta.placeholder = 'Вставте список співробітників (з групами)';
   const helper = document.createElement('div');
   helper.className = 'helper';
-  helper.textContent = 'Формат: Імʼя Прізвище\tПосада\t120 грн/год. Працює також: кілька пробілів, кома, ;, |, тире між полями. Рядок без розділювачів = назва групи. Ставка: число/грн/год, "фікс 1000" або 5%.';
+  helper.textContent =
+    'Формат: Імʼя Прізвище\tПосада\t120 грн/год. Працює також: кілька пробілів, кома, ;, |, тире між полями. Рядок без розділювачів = назва групи. Ставка: число/грн/год, "фікс 1000" або 5%.';
   const body = document.createElement('div');
   body.append(ta, helper);
   openModal({
