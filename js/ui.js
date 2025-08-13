@@ -205,7 +205,7 @@ export function importEmployeesFlow() {
   ta.placeholder = 'Вставте список співробітників (з групами)';
   const helper = document.createElement('div');
   helper.className = 'helper';
-  helper.textContent = 'Імʼя Прізвище\tПосада\t120 грн/год. Один стовпець = назва групи.';
+  helper.textContent = 'Формат: Імʼя Прізвище\tПосада\t120 грн/год. Працює також: кілька пробілів, кома, ;, |, тире між полями. Рядок без розділювачів = назва групи. Ставка: число/грн/год, "фікс 1000" або 5%.';
   const body = document.createElement('div');
   body.append(ta, helper);
   openModal({
@@ -250,7 +250,7 @@ export function editEmployeesFlow() {
   const helper = document.createElement('div');
   helper.className = 'helper';
   helper.textContent =
-    'Редагуйте список. Рядок без табів = група. Зберігаємо години/продажі по порядку.';
+    'Редагуйте список. Можна використовувати таби, кілька пробілів, коми, ;, | або тире між полями. Рядок без розділювачів = група. Години/продажі збережемо за порядком.';
   const body = document.createElement('div');
   body.append(ta, helper);
   openModal({
