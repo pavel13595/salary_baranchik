@@ -402,10 +402,16 @@ export function bindGlobalEvents() {
     });
   }
   if (dateInput) {
-    dateInput.value = state.settings.reportDate;
+    // Always show yesterday by default
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    const yest = d.toISOString().slice(0, 10);
+    state.settings.reportDate = yest;
+    dateInput.value = yest;
     dateInput.addEventListener('change', () => {
       state.settings.reportDate = dateInput.value;
-      persist();
+      // Recompute because fixed per-day depends on days in month
+      recalcPersistRender();
     });
   }
 }
@@ -460,12 +466,14 @@ export function openEmployeeContextMenu(e, id) {
     }
   });
   add('Фіксована сума', () => {
-    const v = prompt('Сума фіксу?', emp.basePay || '');
+    const v = prompt('Зарплата за місяць (фікс)?', emp.monthlyBase || emp.basePay || '');
     if (v !== null) {
       const r = parseFloat(v.replace(/,/g, '.'));
       if (!isNaN(r)) {
         emp.rateType = 'fixed';
-        emp.basePay = r;
+        emp.monthlyBase = r;
+        // Keep legacy basePay for compatibility; per-day will be derived from monthlyBase
+        emp.basePay = emp.basePay || 0;
         emp.hourlyRate = 0;
         recalcPersistRender();
       }
@@ -476,6 +484,7 @@ export function openEmployeeContextMenu(e, id) {
       emp.rateType = 'hourly';
       emp.hourlyRate = emp.basePay || emp.hourlyRate;
       emp.basePay = 0;
+      emp.monthlyBase = 0;
       recalcPersistRender();
     });
   let x = e.pageX + 6;

@@ -1,5 +1,5 @@
 import { state } from './state.js';
-import { round2 } from './utils.js';
+import { round2, fixedPerDay } from './utils.js';
 
 /**
  * Recalculate pay for all employees (idempotent)
@@ -16,7 +16,7 @@ export function computePays() {
         pay = (emp.hoursMinutes / 60) * emp.hourlyRate + salesNet * (emp.hostessPercent / 100);
         break;
       case 'fixed':
-        pay = emp.basePay;
+        pay = fixedPerDay(emp);
         break;
       case 'hourly':
       default:

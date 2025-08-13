@@ -49,7 +49,8 @@ export function loadState() {
   } catch (e) {
     console.error('Помилка завантаження стану', e);
   }
-  if (!state.settings.reportDate) {
+  // Always default to yesterday's date on each load
+  {
     const d = new Date();
     d.setDate(d.getDate() - 1);
     state.settings.reportDate = d.toISOString().slice(0, 10);

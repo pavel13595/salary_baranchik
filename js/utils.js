@@ -11,6 +11,7 @@
  * @property {number} [hostessPercent]
  * @property {number} [hourlyRate]
  * @property {number} [basePay]
+ * @property {number} [monthlyBase]
  * @property {string} hoursText
  * @property {number} hoursMinutes
  * @property {number} sales
@@ -21,6 +22,8 @@
 export const $ = (sel) => document.querySelector(sel);
 export const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 export const uid = () => Math.random().toString(36).slice(2, 11);
+
+import { state } from './state.js';
 
 export function escapeHtml(str) {
   return String(str).replace(
@@ -75,6 +78,25 @@ export function parseHoursInterval(raw) {
   return { valid: true, minutes, token: 'interval' };
 }
 
+// Days in the month of provided YYYY-MM-DD (fallback to today if invalid)
+export function daysInMonth(dateStr) {
+  let d = new Date(dateStr || '');
+  if (isNaN(d)) d = new Date();
+  const y = d.getFullYear();
+  const m = d.getMonth();
+  return new Date(y, m + 1, 0).getDate();
+}
+
+// Compute per-day pay for fixed employees. If monthlyBase present -> rounded monthly/days; else fallback to basePay.
+export function fixedPerDay(emp) {
+  if (!emp) return 0;
+  const days = daysInMonth(state.settings?.reportDate);
+  if (emp.monthlyBase && !isNaN(emp.monthlyBase)) {
+    return Math.round(Number(emp.monthlyBase) / (days || 30));
+  }
+  return Number(emp.basePay || 0);
+}
+
 /**
  * Human readable display of rate column (unified across UI / export)
  * @param {Employee} emp
@@ -83,6 +105,6 @@ export function rateDisplay(emp) {
   if (!emp) return '';
   if (emp.rateType === 'waiter') return (emp.waiterPercent || 5) + '%';
   if (emp.rateType === 'hostess') return String(emp.hourlyRate || 0);
-  if (emp.rateType === 'fixed') return String(emp.basePay || 0);
+  if (emp.rateType === 'fixed') return String(fixedPerDay(emp) || 0);
   return String(emp.hourlyRate || 0);
 }

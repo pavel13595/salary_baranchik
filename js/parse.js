@@ -11,9 +11,17 @@ export function interpretRate(position, rateStr) {
     const hr = extractNumber(rateStr);
     return { rateType: 'hostess', hourlyRate: hr, hostessPercent: 2, waiterPercent: 0, basePay: 0 };
   }
-  if (/фікс|фикс/.test(lower)) {
+  if (/фікс|фикс|fix/.test(lower)) {
     const num = extractNumber(lower);
-    return { rateType: 'fixed', hourlyRate: 0, waiterPercent: 0, hostessPercent: 0, basePay: num };
+    // Map to monthlyBase for the new fixed-per-month model
+    return {
+      rateType: 'fixed',
+      hourlyRate: 0,
+      waiterPercent: 0,
+      hostessPercent: 0,
+      basePay: 0,
+      monthlyBase: num,
+    };
   }
   const hr = extractNumber(lower);
   return { rateType: 'hourly', hourlyRate: hr, waiterPercent: 0, hostessPercent: 0, basePay: 0 };
@@ -91,13 +99,33 @@ export function parseEmployeesBulk(text) {
           position = emb.stripped;
         }
       } else if (parts.length === 3) {
-        [name, position, rateStr] = parts;
-        // If position contains embedded rate and the provided rate is 0/invalid, use embedded
-        const emb = detectTrailingRate(position);
-        const lastVal = extractNumber(rateStr || '');
-        if (emb && (rateStr === undefined || isNaN(lastVal) || lastVal === 0)) {
-          rateStr = emb.rateStr;
-          position = emb.stripped;
+        const [p1, p2, p3] = parts;
+        const looksRate3 =
+          /(\d+\s*%$)|((?:фікс|фикс|fix)\s*\d+[\.,]?\d*$)|((?:\d+[\.,]?\d*)\s*(?:грн|uah|₴)?(?:\s*[\\\/]\s*(?:год|час|ч))?$)/i.test(
+            p3
+          );
+        if (looksRate3) {
+          // Name, Position, Rate
+          name = p1;
+          position = p2;
+          rateStr = p3;
+          const emb = detectTrailingRate(position);
+          const lastVal = extractNumber(rateStr || '');
+          if (emb && (rateStr === undefined || isNaN(lastVal) || lastVal === 0)) {
+            rateStr = emb.rateStr;
+            position = emb.stripped;
+          }
+        } else {
+          // Common case: Name, Surname, Position (no rate)
+          name = `${p1} ${p2}`.trim();
+          position = p3;
+          rateStr = '';
+          // If position has embedded rate (rare), extract it
+          const emb = detectTrailingRate(position);
+          if (emb) {
+            rateStr = emb.rateStr;
+            position = emb.stripped;
+          }
         }
       } else {
         // exactly two parts
@@ -158,6 +186,14 @@ export function parseEmployeesBulk(text) {
         }
         position = tmp.slice(mPos.index).trim();
         name = before;
+        // If rateStr is missing or equals 0 (common trailing artifact),
+        // try to detect an embedded rate at the end of the position and prefer it.
+        const embPos = detectTrailingRate(position);
+        const lastVal = extractNumber(rateStr || '');
+        if (embPos && (!rateStr || isNaN(lastVal) || lastVal === 0)) {
+          rateStr = embPos.rateStr;
+          position = embPos.stripped;
+        }
       } else {
         // As a last resort, consider it's a group line if no rate detected
         if (!rateStr) {

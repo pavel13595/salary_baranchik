@@ -1,7 +1,7 @@
 import { state } from './state.js';
 import { showToast } from './ui.js';
 import { computePays } from './pay.js';
-import { rateDisplay, parseHoursInterval } from './utils.js';
+import { rateDisplay, parseHoursInterval, fixedPerDay } from './utils.js';
 
 const FIXED_LAYOUT = [
   { key: 'name', title: '', width: 28 },
@@ -78,7 +78,7 @@ function buildReportData() {
   function rateDisp(e) {
     // Return numeric rate (hourly/fixed). For waiter percent we store decimal (0.05) and later format as percent.
     if (e.rateType === 'waiter') return Number(e.waiterPercent || 5) / 100;
-    if (e.rateType === 'fixed') return Number(e.basePay || 0);
+    if (e.rateType === 'fixed') return Number(fixedPerDay(e) || 0);
     return Number(e.hourlyRate || 0);
   }
   function hoursF(e) {
