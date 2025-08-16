@@ -1,5 +1,7 @@
 /* Right-aligned tags inside position cell */
-.payroll-table td.pos-cell { position: relative; }
+.payroll-table td.pos-cell {
+  position: relative;
+}
 .payroll-table td.pos-cell .cell-tags {
   position: absolute;
   right: 6px;

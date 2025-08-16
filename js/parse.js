@@ -5,7 +5,15 @@ export function interpretRate(position, rateStr) {
   const lowerPos = (position || '').toLowerCase();
   const lower = (rateStr || '').toLowerCase();
   if (/(официант|офіціант)/i.test(position) || /5\s*%/.test(lower)) {
-    return { rateType: 'waiter', waiterPercent: 5, hostessPercent: 0, hourlyRate: 0, basePay: 0, waiterMinGuarantee: true, min500Applied: false };
+    return {
+      rateType: 'waiter',
+      waiterPercent: 5,
+      hostessPercent: 0,
+      hourlyRate: 0,
+      basePay: 0,
+      waiterMinGuarantee: true,
+      min500Applied: false,
+    };
   }
   if (/хостес/i.test(position)) {
     const hr = extractNumber(rateStr);
