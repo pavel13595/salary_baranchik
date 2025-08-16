@@ -6,7 +6,8 @@ import { rateDisplay, parseHoursInterval, fixedPerDay } from './utils.js';
 const FIXED_LAYOUT = [
   { key: 'name', title: '', width: 28 },
   { key: 'position', title: 'Посада', width: 16 },
-  { key: 'hours', title: 'Кількість відпрацьованих відпрацьованих годин, %, змін', width: 18 },
+  // Fixed header wording: remove duplicated word and trailing artifacts
+  { key: 'hours', title: 'Кількість відпрацьованих годин', width: 18 },
   { key: 'rate', title: 'Ставка', width: 10 },
   { key: 'sales', title: 'Продажі', width: 12 },
   { key: 'withheld', title: 'Утримано', width: 12 },

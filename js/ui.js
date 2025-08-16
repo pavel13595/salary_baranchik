@@ -387,6 +387,14 @@ export function bindGlobalEvents() {
   $('#editEmployeesBtn').onclick = editEmployeesFlow;
   $('#inputHoursBtn').onclick = importHoursFlow;
   $('#exportExcelBtn').onclick = exportExcel;
+  const recalcBtn = document.getElementById('recalcFixedBtn');
+  if (recalcBtn) {
+    recalcBtn.addEventListener('click', () => {
+      computePays();
+      renderEmployeesTable();
+      showToast('FIX перераховано', 'success');
+    });
+  }
   $('#clearHoursBtn').onclick = clearHours;
   $('#fullResetBtn').onclick = fullReset;
   $('#themeToggleBtn').onclick = toggleTheme;
