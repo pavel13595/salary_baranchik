@@ -79,7 +79,10 @@ export function renderEmployeesTable() {
         invalidHours = !parsed.valid;
       }
       const hoursTdClass = `editable${invalidHours ? ' invalid' : ''}`;
-      rows.push(`<tr data-id='${emp.id}' class='${fixed ? 'mark-fixed' : ''}'>
+      const rowCls = [fixed ? 'mark-fixed' : '', emp.offSalary ? 'mark-off-salary' : '']
+        .filter(Boolean)
+        .join(' ');
+      rows.push(`<tr data-id='${emp.id}' class='${rowCls}'>
         <td>${emp.order}</td>
         <td>${escapeHtml(emp.name)}</td>
   <td class='pos-cell'>${escapeHtml(emp.position)}${tagsBlock}</td>
@@ -514,6 +517,20 @@ export function bindGlobalEvents() {
   $('#clearHoursBtn').onclick = clearHours;
   $('#fullResetBtn').onclick = fullReset;
   $('#themeToggleBtn').onclick = toggleTheme;
+  const offBtn = document.getElementById('officialHighlightBtn');
+  if (offBtn) {
+    const apply = () => {
+      offBtn.classList.toggle('active', state.settings.showOfficial);
+      offBtn.setAttribute('aria-pressed', state.settings.showOfficial ? 'true' : 'false');
+      document.body.classList.toggle('show-official', state.settings.showOfficial);
+    };
+    apply();
+    offBtn.addEventListener('click', () => {
+      state.settings.showOfficial = !state.settings.showOfficial;
+      persist();
+      apply();
+    });
+  }
   // Initial state of export button (in case of persisted invalid data)
   requestAnimationFrame(updateExportButtonState);
   const cityInput = document.getElementById('cityInput');
@@ -625,6 +642,10 @@ export function openEmployeeContextMenu(e, id) {
       });
     }
   }
+  add(emp.offSalary ? 'Прибрати офіц. ЗП' : 'Позначити офіц. ЗП', () => {
+    emp.offSalary = !emp.offSalary;
+    recalcPersistRender();
+  });
   let x = e.pageX + 6;
   let y = e.pageY + 6;
   menu.style.position = 'absolute';

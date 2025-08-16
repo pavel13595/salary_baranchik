@@ -5,7 +5,7 @@
  * @property {Employee[]} employees
  * @property {{ theme: 'dark'|'light', lastUpdated: string|null }} meta
  * @property {{ columns: any[], groupSubtotalMergeUntil: string, dateRow: boolean }} layout
- * @property {{ city: string, reportDate: string }} settings
+ * @property {{ city: string, reportDate: string, showOfficial:boolean }} settings
  */
 export const STORAGE_KEY = 'payroll_employees_v1';
 export const STORAGE_META = 'payroll_meta_v1';
@@ -31,7 +31,7 @@ export const state = {
     groupSubtotalMergeUntil: 'issued',
     dateRow: true,
   },
-  settings: { city: '', reportDate: '' },
+  settings: { city: '', reportDate: '', showOfficial: false },
 };
 
 export const defaultLayout = JSON.parse(JSON.stringify(state.layout));
@@ -46,6 +46,7 @@ export function loadState() {
     if (layout) state.layout = { ...state.layout, ...JSON.parse(layout) };
     const settings = localStorage.getItem(STORAGE_SETTINGS);
     if (settings) state.settings = { ...state.settings, ...JSON.parse(settings) };
+    if (typeof state.settings.showOfficial !== 'boolean') state.settings.showOfficial = false;
   } catch (e) {
     console.error('Помилка завантаження стану', e);
   }
