@@ -445,7 +445,47 @@ export function bindGlobalEvents() {
       const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: 'application/json' });
       const a = document.createElement('a');
       a.href = URL.createObjectURL(blob);
-      a.download = 'payroll_config.json';
+      const city = (state.settings.city || '').trim();
+      // Simple city -> code map (extendable)
+      const map = {
+        київ: 'KY',
+        kyiv: 'KY',
+        kiev: 'KY',
+        харків: 'KH',
+        kharkiv: 'KH',
+        львів: 'LV',
+        lviv: 'LV',
+        дніпро: 'DN',
+        dnipro: 'DN',
+        одеса: 'OD',
+        одесса: 'OD',
+        odessa: 'OD',
+        odesa: 'OD',
+        кременчук: 'KR',
+        кременчуг: 'KR',
+        полтава: 'PL',
+        вінниця: 'VN',
+        винница: 'VN',
+        запоріжжя: 'ZP',
+        запорожье: 'ZP',
+        черкаси: 'CK',
+        черкасы: 'CK',
+        житомир: 'ZH',
+        житомир: 'ZH',
+      };
+      let code = '';
+      if (city) {
+        const key = city.toLowerCase();
+        code =
+          map[key] ||
+          city
+            .slice(0, 2)
+            .toUpperCase()
+            .replace(/[^A-ZА-ЯІЇЄҐ]/g, '');
+      }
+      const d = new Date();
+      const datePart = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      a.download = `${code || 'CFG'}_${datePart}_settings.json`;
       a.click();
       setTimeout(() => URL.revokeObjectURL(a.href), 3000);
       showToast('Конфіг збережено', 'success');
