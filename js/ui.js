@@ -387,12 +387,118 @@ export function bindGlobalEvents() {
   $('#editEmployeesBtn').onclick = editEmployeesFlow;
   $('#inputHoursBtn').onclick = importHoursFlow;
   $('#exportExcelBtn').onclick = exportExcel;
-  const recalcBtn = document.getElementById('recalcFixedBtn');
-  if (recalcBtn) {
-    recalcBtn.addEventListener('click', () => {
-      computePays();
-      renderEmployeesTable();
-      showToast('FIX перераховано', 'success');
+  const copyBtn = document.getElementById('copyNamesBtn');
+  if (copyBtn) {
+    copyBtn.addEventListener('click', (ev) => {
+      const names = state.employees
+        .filter(
+          (e) =>
+            !isDayOff(e) &&
+            (e.rateType === 'fixed' ||
+              e.hoursMinutes > 0 ||
+              e.rateType === 'waiter' ||
+              e.rateType === 'hostess' ||
+              e.rateType === 'hourly')
+        )
+        .map((e) => (e.name || '').trim())
+        .filter(Boolean);
+      if (!names.length) {
+        showToast('Немає ПІБ для копіювання', 'error');
+        return;
+      }
+      const horizontal = ev.altKey; // Alt = one row (tab separated)
+      const download = ev.shiftKey; // Shift = download file
+      const forceRich = ev.ctrlKey || ev.metaKey; // Ctrl/Cmd = rich HTML table (може змінити межі осередків)
+      const CRLF = '\r\n';
+      const text = horizontal ? names.join('\t') : names.join(CRLF) + CRLF; // add trailing CRLF for Sheets
+      if (download) {
+        const blob = new Blob([text], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = horizontal ? 'names_row.txt' : 'names_column.txt';
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+        showToast('Файл з іменами збережено', 'success');
+        return;
+      }
+      function fallbackCopy(t) {
+        try {
+          const ta = document.createElement('textarea');
+          ta.style.position = 'fixed';
+          ta.style.opacity = '0';
+          ta.value = t;
+          document.body.appendChild(ta);
+          ta.focus();
+          ta.select();
+          const ok = document.execCommand('copy');
+          ta.remove();
+          return ok;
+        } catch {
+          return false;
+        }
+      }
+      const doToast = () =>
+        showToast(
+          horizontal
+            ? `Скопійовано в ряд (${names.length})`
+            : `Скопійовано в стовпчик (${names.length})`,
+          'success'
+        );
+      // Default: plain text only to preserve existing borders (границі) при вставці.
+      // Rich HTML only if користувач утримує Ctrl/Cmd.
+      if (forceRich) {
+        function escHtml(s) {
+          return s.replace(
+            /[&<>"]/g,
+            (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]
+          );
+        }
+        const html = horizontal
+          ? `<table><tbody><tr>${names.map((n) => `<td>${escHtml(n)}</td>`).join('')}</tr></tbody></table>`
+          : `<table><tbody>${names.map((n) => `<tr><td>${escHtml(n)}</td></tr>`).join('')}</tbody></table>`;
+        const richSupported = !!(
+          navigator.clipboard &&
+          navigator.clipboard.write &&
+          window.ClipboardItem
+        );
+        if (richSupported) {
+          const blobHtml = new Blob([html], { type: 'text/html' });
+          const blobText = new Blob([text], { type: 'text/plain' });
+          navigator.clipboard
+            .write([new ClipboardItem({ 'text/html': blobHtml, 'text/plain': blobText })])
+            .then(doToast, () => {
+              // fallback to plain flow
+              if (navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(doToast, () => {
+                  if (fallbackCopy(text)) doToast();
+                  else {
+                    const manual = prompt('Скопіюйте вручну (Ctrl/Cmd+C):', text);
+                    if (manual !== null) showToast('Скопійовано (ручний режим)', 'success');
+                  }
+                });
+              } else if (fallbackCopy(text)) doToast();
+              else {
+                const manual = prompt('Скопіюйте вручну (Ctrl/Cmd+C):', text);
+                if (manual !== null) showToast('Скопійовано (ручний режим)', 'success');
+              }
+            });
+          return; // stop further plain handling
+        }
+        // if rich unsupported just fall through to plain
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(doToast, () => {
+          if (fallbackCopy(text)) doToast();
+          else {
+            const manual = prompt('Скопіюйте вручну (Ctrl/Cmd+C):', text);
+            if (manual !== null) showToast('Скопійовано (ручний режим)', 'success');
+          }
+        });
+      } else if (fallbackCopy(text)) doToast();
+      else {
+        const manual = prompt('Скопіюйте вручну (Ctrl/Cmd+C):', text);
+        if (manual !== null) showToast('Скопійовано (ручний режим)', 'success');
+      }
     });
   }
   $('#clearHoursBtn').onclick = clearHours;

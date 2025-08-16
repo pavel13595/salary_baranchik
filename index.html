@@ -36,7 +36,27 @@
         <div class="meta-group">
           <div class="field"><input id="cityInput" type="text" placeholder="Місто" /></div>
           <div class="field"><input id="reportDateInput" type="date" /></div>
-          <button id="recalcFixedBtn" class="subtle" title="Перерахувати FIX (оновити денну ставку)">↻ FIX</button>
+          <button
+            id="copyNamesBtn"
+            class="subtle"
+            title="Скопіювати ПІБ: клік=стовпчик (зберігає границі), Alt=в один ряд (таб), Ctrl/Cmd=таблиця (може змінити границі), Shift=файл"
+            aria-label="Скопіювати ПІБ"
+          >
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
+              <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+            </svg>
+          </button>
           <button id="exportExcelBtn" class="outline-accent">Експорт в Excel</button>
         </div>
       </div>
@@ -77,7 +97,7 @@
       src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"
       crossorigin="anonymous"
     ></script>
-  <!-- Cache-busting query to ensure latest script loads on GitHub Pages -->
-  <script type="module" src="js/app.js?v=be91259"></script>
+    <!-- Cache-busting query to ensure latest script loads on GitHub Pages -->
+    <script type="module" src="js/app.js?v=be91259"></script>
   </body>
 </html>
