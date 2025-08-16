@@ -82,6 +82,10 @@ export function renderEmployeesTable() {
       const hoursTdClass = `editable${invalidHours ? ' invalid' : ''}`;
       // Removed fixed salary highlighting (mark-fixed) per user request
       const rowCls = [emp.offSalary ? 'mark-off-salary' : ''].filter(Boolean).join(' ');
+      // Missing sales indicator: add CSS class (keeps cell fully editable)
+      const needsSales = emp.rateType === 'waiter' || emp.rateType === 'hostess';
+      const missingSales = needsSales && emp.hoursMinutes > 0 && (!emp.sales || emp.sales === 0);
+      const salesCellClass = `editable${missingSales ? ' missing-sales' : ''}`;
       rows.push(`<tr data-id='${emp.id}' class='${rowCls}'>
         ${state.settings.manageOfficialInline ? `<td><input type='checkbox' class='off-flag' data-id='${emp.id}' ${emp.offSalary ? 'checked' : ''} /></td>` : ''}
         <td>${emp.order}</td>
@@ -89,7 +93,7 @@ export function renderEmployeesTable() {
   <td class='pos-cell'>${escapeHtml(emp.position)}${tagsBlock}</td>
         <td>${rateDisp}</td>
         <td class='${hoursTdClass}' data-field='hoursText' contenteditable='true' title='Формат 10:00-21:30'>${hoursEsc}</td>
-        <td class='editable' data-field='sales' contenteditable='true'>${escapeHtml(String(emp.sales || ''))}</td>
+        <td class='${salesCellClass}' data-field='sales' contenteditable='true'>${escapeHtml(String(emp.sales || ''))}</td>
         <td class='editable' data-field='gifts' contenteditable='true'>${escapeHtml(String(emp.gifts || ''))}</td>
         <td class='editable' data-field='withheld' contenteditable='true'>${escapeHtml(String(emp.withheld || ''))}</td>
         <td class='pay'>${payInt}</td>

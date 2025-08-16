@@ -4,13 +4,47 @@ import { computePays } from './pay.js';
 import { renderEmployeesTable, bindGlobalEvents, showToast } from './ui.js';
 
 // Build/version marker (update hash when deploying to GitHub Pages to force cache refresh)
-const APP_VERSION = '2025.08.16.1';
+const APP_VERSION = '2025.08.16.2';
 console.info('[Payroll] App version', APP_VERSION);
 
 loadState();
 computePays();
 renderEmployeesTable();
 bindGlobalEvents();
+
+// === Live update checker (feature #20) ===
+const VERSION_CHECK_INTERVAL_MS = 300_000; // 5 minutes
+async function checkForUpdate() {
+  try {
+    const res = await fetch('js/app.js?cv=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return;
+    const txt = await res.text();
+    const m = txt.match(/APP_VERSION\s*=\s*'([^']+)'/);
+    if (m && m[1] && m[1] !== APP_VERSION) {
+      if (!document.getElementById('updatePrompt')) {
+        const bar = document.createElement('div');
+        bar.id = 'updatePrompt';
+        bar.style.position = 'fixed';
+        bar.style.bottom = '12px';
+        bar.style.right = '12px';
+        bar.style.zIndex = '500';
+        bar.style.background = 'var(--panel)';
+        bar.style.border = '1px solid var(--border)';
+        bar.style.padding = '12px 16px';
+        bar.style.borderRadius = '10px';
+        bar.style.boxShadow = '0 6px 24px -6px rgba(0,0,0,0.5)';
+        bar.innerHTML = `<span style='margin-right:12px'>Є оновлення. Перезавантажити?</span><button class='primary' id='reloadNowBtn'>Так</button><button class='subtle' id='reloadLaterBtn'>Пізніше</button>`;
+        document.body.appendChild(bar);
+        bar.querySelector('#reloadNowBtn').onclick = () => location.reload();
+        bar.querySelector('#reloadLaterBtn').onclick = () => bar.remove();
+      }
+    }
+  } catch (e) {
+    // silent fail
+  }
+}
+setTimeout(checkForUpdate, 15_000); // initial delayed check
+setInterval(checkForUpdate, VERSION_CHECK_INTERVAL_MS);
 
 window.addEventListener('keydown', (e) => {
   if (e.ctrlKey && e.key === 's') {
