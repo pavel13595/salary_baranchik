@@ -42,6 +42,20 @@
   font-weight: 600;
 }
 
+/* Green 500 guarantee badge */
+.tag-min500 {
+  display: inline-block;
+  margin-left: 6px;
+  background: #27ae60;
+  color: #fff;
+  font-size: 0.55rem;
+  padding: 2px 6px 3px;
+  border-radius: 6px;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+
 .toast-container {
   position: fixed;
   bottom: 28px;

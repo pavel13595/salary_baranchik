@@ -60,8 +60,13 @@ export function renderEmployeesTable() {
       rows.push(`<tr class='group-row'><td colspan='9'>${escapeHtml(g)}</td></tr>`);
     for (const emp of orderMap.get(g)) {
       const fixed = emp.rateType === 'fixed';
-      const rateDisp = rateDisplay(emp);
+  const rateDisp = rateDisplay(emp);
       const fixedTag = fixed ? '<span class="tag-fixed">FIX</span>' : '';
+      const min500Tag = (emp.rateType === 'waiter' && emp.waiterMinGuarantee !== false)
+        ? '<span class="tag-min500" title="Минимальная гарантия 500 включена">500</span>'
+        : '';
+      const tagPieces = [fixedTag, min500Tag].filter(Boolean).join('');
+      const tagsBlock = tagPieces ? `<span class='cell-tags'>${tagPieces}</span>` : '';
       const payInt = typeof emp.pay === 'number' ? Math.round(emp.pay) : '';
       const rawHours = emp.hoursText || '';
       const hoursEsc = escapeHtml(rawHours);
@@ -76,7 +81,7 @@ export function renderEmployeesTable() {
       rows.push(`<tr data-id='${emp.id}' class='${fixed ? 'mark-fixed' : ''}'>
         <td>${emp.order}</td>
         <td>${escapeHtml(emp.name)}</td>
-        <td>${escapeHtml(emp.position)} ${fixedTag}</td>
+  <td class='pos-cell'>${escapeHtml(emp.position)}${tagsBlock}</td>
         <td>${rateDisp}</td>
         <td class='${hoursTdClass}' data-field='hoursText' contenteditable='true' title='Формат 10:00-21:30'>${hoursEsc}</td>
         <td class='editable' data-field='sales' contenteditable='true'>${escapeHtml(String(emp.sales || ''))}</td>
@@ -365,6 +370,10 @@ export function clearHours() {
     e.gifts = 0;
     e.withheld = 0;
     e.pay = 0;
+    // Reset waiter min 500 application flag (but keep preference to enabled)
+    if (e.rateType === 'waiter') {
+      e.min500Applied = false;
+    }
   });
   recalcPersistRender('Очищено години / продажі / утримання');
 }
@@ -564,6 +573,7 @@ export function openEmployeeContextMenu(e, id) {
     emp.waiterPercent = 5;
     emp.hourlyRate = 0;
     emp.basePay = 0;
+  if (emp.waiterMinGuarantee === undefined) emp.waiterMinGuarantee = true;
     recalcPersistRender();
   });
   add('Хостес (+2%)', () => {
@@ -601,6 +611,19 @@ export function openEmployeeContextMenu(e, id) {
       emp.monthlyBase = 0;
       recalcPersistRender();
     });
+  if (emp.rateType === 'waiter') {
+    if (emp.waiterMinGuarantee === false) {
+      add('Увімкнути мін 500', () => {
+        emp.waiterMinGuarantee = true;
+        recalcPersistRender();
+      });
+    } else {
+      add('Вимкнути мін 500', () => {
+        emp.waiterMinGuarantee = false;
+        recalcPersistRender();
+      });
+    }
+  }
   let x = e.pageX + 6;
   let y = e.pageY + 6;
   menu.style.position = 'absolute';
