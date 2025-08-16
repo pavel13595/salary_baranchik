@@ -414,6 +414,101 @@ export function toggleTheme() {
 export function bindGlobalEvents() {
   $('#importEmployeesBtn').onclick = importEmployeesFlow;
   $('#editEmployeesBtn').onclick = editEmployeesFlow;
+  const exportCfgBtn = document.getElementById('exportConfigBtn');
+  if (exportCfgBtn) {
+    exportCfgBtn.onclick = () => {
+      const cfg = {
+        employees: state.employees.map((e) => ({
+          id: e.id,
+          order: e.order,
+          name: e.name,
+          position: e.position,
+          group: e.group,
+          rateType: e.rateType,
+          hourlyRate: e.hourlyRate,
+          basePay: e.basePay,
+          monthlyBase: e.monthlyBase,
+          waiterPercent: e.waiterPercent,
+          hostessPercent: e.hostessPercent,
+          waiterMinGuarantee: e.waiterMinGuarantee,
+          rawRateStr: e.rawRateStr,
+          offSalary: !!e.offSalary,
+          // hours / sales / gifts / withheld deliberately omitted
+        })),
+        settings: {
+          showOfficial: state.settings.showOfficial,
+          // exclude volatile like reportDate
+        },
+        version: 'config-v1',
+        ts: new Date().toISOString(),
+      };
+      const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'payroll_config.json';
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+      showToast('Конфіг збережено', 'success');
+    };
+  }
+  const importCfgBtn = document.getElementById('importConfigBtn');
+  if (importCfgBtn) {
+    importCfgBtn.onclick = () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = 'application/json,.json';
+      input.onchange = () => {
+        const file = input.files && input.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const data = JSON.parse(reader.result);
+            if (data.version !== 'config-v1' || !Array.isArray(data.employees)) throw new Error();
+            // Preserve existing hours/sales/gifts/withheld if same order/id
+            const oldMap = new Map(state.employees.map((e) => [e.id, e]));
+            state.employees = data.employees.map((e, idx) => {
+              const prev = oldMap.get(e.id);
+              // Normalize defaults to avoid NaN later
+              if (e.rateType === 'waiter') {
+                if (typeof e.waiterPercent !== 'number' || isNaN(e.waiterPercent))
+                  e.waiterPercent = 5;
+                if (e.waiterMinGuarantee === undefined) e.waiterMinGuarantee = true;
+              }
+              if (e.rateType === 'hostess') {
+                if (typeof e.hostessPercent !== 'number' || isNaN(e.hostessPercent))
+                  e.hostessPercent = 2;
+                if (typeof e.hourlyRate !== 'number' || isNaN(e.hourlyRate)) e.hourlyRate = 0;
+              }
+              if (e.rateType === 'hourly') {
+                if (typeof e.hourlyRate !== 'number' || isNaN(e.hourlyRate)) e.hourlyRate = 0;
+              }
+              if (e.rateType === 'fixed') {
+                if (typeof e.monthlyBase !== 'number' || isNaN(e.monthlyBase))
+                  e.monthlyBase = Number(e.basePay) || 0;
+              }
+              return {
+                ...prev,
+                ...e,
+                hoursText: prev ? prev.hoursText : '',
+                hoursMinutes: prev ? prev.hoursMinutes : 0,
+                sales: 0,
+                gifts: 0,
+                withheld: 0,
+                pay: 0,
+              };
+            });
+            persist();
+            recalcPersistRender('Конфіг імпортовано');
+          } catch {
+            showToast('Некоректний файл конфігурації', 'error');
+          }
+        };
+        reader.readAsText(file);
+      };
+      input.click();
+    };
+  }
   $('#inputHoursBtn').onclick = importHoursFlow;
   $('#exportExcelBtn').onclick = exportExcel;
   const copyBtn = document.getElementById('copyNamesBtn');

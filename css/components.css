@@ -122,6 +122,40 @@ body.show-official .payroll-table tr.mark-off-salary td:first-child::before {
   margin-left: auto;
 }
 
+/* Quick tools (export/import config) */
+#quickTools {
+  position: fixed;
+  top: 10px; /* align with theme toggle */
+  right: 60px; /* space so theme toggle stays at far right */
+  z-index: 55;
+  display: flex;
+  flex-direction: row;
+  gap: 10px;
+  align-items: center;
+}
+#quickTools .quick-tool-btn {
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-dim);
+  box-shadow: 0 4px 12px -6px rgba(0, 0, 0, 0.5);
+  transition: 0.25s;
+}
+#quickTools .quick-tool-btn:hover {
+  color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px -8px rgba(0, 0, 0, 0.6);
+}
+#quickTools .quick-tool-btn:active {
+  transform: translateY(0);
+}
+
 .inline-edit-btn {
   font-size: 0.55rem;
   padding: 4px 6px;
