@@ -23,7 +23,6 @@ export function showToast(msg, type = 'info', timeout = 4000) {
       el.remove();
     }, timeout);
 }
-
 export function renderEmployeesTable() {
   const container = document.getElementById('employeesTableContainer');
   if (!state.employees.length) {
@@ -34,6 +33,7 @@ export function renderEmployeesTable() {
   const orderMap = new Map();
   state.employees.forEach((emp) => {
     if (isDayOff(emp)) return;
+    if (state.settings.filterOfficialOnly && !emp.offSalary) return;
     const g = emp.group || '_NO_GROUP_';
     if (!orderMap.has(g)) orderMap.set(g, []);
     orderMap.get(g).push(emp);
@@ -41,6 +41,7 @@ export function renderEmployeesTable() {
   const seen = new Set();
   state.employees.forEach((emp) => {
     if (isDayOff(emp)) return;
+    if (state.settings.filterOfficialOnly && !emp.offSalary) return;
     const g = emp.group || '_NO_GROUP_';
     if (!seen.has(g) && orderMap.has(g)) {
       grouped.push(g);
@@ -53,7 +54,7 @@ export function renderEmployeesTable() {
   }
   const rows = [];
   rows.push(
-    `<table class='payroll-table'><thead><tr><th>#</th><th>ПІБ</th><th>Посада</th><th>Ставка</th><th>Години</th><th>Продажі</th><th>Подарунки</th><th>Утримано</th><th>ЗП</th></tr></thead><tbody>`
+    `<table class='payroll-table'><thead><tr>${state.settings.manageOfficialInline ? '<th class="off-col" title="Офіційна ЗП">Оф</th>' : ''}<th>#</th><th>ПІБ</th><th>Посада</th><th>Ставка</th><th>Години</th><th>Продажі</th><th>Подарунки</th><th>Утримано</th><th>ЗП</th></tr></thead><tbody>`
   );
   for (const g of grouped) {
     if (g !== '_NO_GROUP_')
@@ -83,6 +84,7 @@ export function renderEmployeesTable() {
         .filter(Boolean)
         .join(' ');
       rows.push(`<tr data-id='${emp.id}' class='${rowCls}'>
+        ${state.settings.manageOfficialInline ? `<td><input type='checkbox' class='off-flag' data-id='${emp.id}' ${emp.offSalary ? 'checked' : ''} /></td>` : ''}
         <td>${emp.order}</td>
         <td>${escapeHtml(emp.name)}</td>
   <td class='pos-cell'>${escapeHtml(emp.position)}${tagsBlock}</td>
@@ -107,6 +109,20 @@ export function renderEmployeesTable() {
       }
     });
   });
+  if (state.settings.manageOfficialInline) {
+    container.querySelectorAll('input.off-flag').forEach((cb) => {
+      cb.addEventListener('change', () => {
+        const emp = state.employees.find((e) => e.id === cb.dataset.id);
+        if (emp) {
+          emp.offSalary = cb.checked;
+          persist();
+          // don't rerender to preserve focus; highlight update only
+          if (state.settings.showOfficial)
+            cb.closest('tr').classList.toggle('mark-off-salary', cb.checked);
+        }
+      });
+    });
+  }
   if (!container.dataset.ctxBound) {
     container.addEventListener('contextmenu', (e) => {
       const tr = e.target.closest('tr[data-id]');
@@ -526,9 +542,53 @@ export function bindGlobalEvents() {
     };
     apply();
     offBtn.addEventListener('click', () => {
-      state.settings.showOfficial = !state.settings.showOfficial;
-      persist();
-      apply();
+      function toggleInlineManage(enable) {
+        state.settings.manageOfficialInline = enable;
+        persist();
+        recalcPersistRender();
+      }
+      // Primary modal (mode selection)
+      const body = document.createElement('div');
+      body.innerHTML = `<div class='helper'>Офіційна зарплата: виберіть режим відображення або увімкніть режим редагування позначок.</div>`;
+      const actions = [
+        {
+          label: state.settings.showOfficial ? 'Приховати підсвітку' : 'Увімкнути підсвітку',
+          class: 'neutral',
+          onClick: () => {
+            state.settings.showOfficial = !state.settings.showOfficial;
+            state.settings.filterOfficialOnly = false;
+            persist();
+            apply();
+            recalcPersistRender();
+            closeModal();
+          },
+        },
+        {
+          label: state.settings.filterOfficialOnly ? 'Показати всіх' : 'Тільки офіційні',
+          class: 'neutral',
+          onClick: () => {
+            state.settings.showOfficial = true;
+            state.settings.filterOfficialOnly = !state.settings.filterOfficialOnly;
+            persist();
+            apply();
+            recalcPersistRender();
+            closeModal();
+          },
+        },
+        {
+          label: state.settings.manageOfficialInline ? 'Вийти з редагування' : 'Редагувати список',
+          class: 'neutral',
+          onClick: () => {
+            const next = !state.settings.manageOfficialInline;
+            toggleInlineManage(next);
+            closeModal();
+            if (next) showToast('Увімкнено режим редагування офіційної ЗП', 'info');
+          },
+        },
+        { label: 'Закрити', class: 'neutral', onClick: closeModal },
+      ];
+      const m = openModal({ title: 'Офіційна ЗП', body, actions });
+      if (m) m.classList.add('compact', 'off-salary-modal');
     });
   }
   // Initial state of export button (in case of persisted invalid data)

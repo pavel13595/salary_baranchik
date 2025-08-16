@@ -43,6 +43,13 @@
   font-weight: 600;
   backdrop-filter: blur(6px);
 }
+.payroll-table th.off-col {
+  width: 34px;
+  text-align: center;
+}
+.payroll-table td .off-flag {
+  transform: scale(1.1);
+}
 /* Removed special 2nd-column centering since all columns are centered now */
 .payroll-table tbody tr:last-child td {
   border-bottom: none;

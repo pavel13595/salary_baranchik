@@ -57,10 +57,10 @@
 
 /* Official salary toggle active */
 #officialHighlightBtn.active {
-  background: linear-gradient(135deg, #16a34a, #4ade80);
-  color: #fff;
-  border-color: #34d399;
-  box-shadow: 0 0 0 2px rgba(52, 211, 153, 0.45);
+  background: var(--panel-alt);
+  color: var(--accent);
+  border-color: var(--accent);
+  box-shadow: none;
 }
 body.show-official .payroll-table tr.mark-off-salary {
   background: linear-gradient(
