@@ -80,9 +80,8 @@ export function renderEmployeesTable() {
         invalidHours = !parsed.valid;
       }
       const hoursTdClass = `editable${invalidHours ? ' invalid' : ''}`;
-      const rowCls = [fixed ? 'mark-fixed' : '', emp.offSalary ? 'mark-off-salary' : '']
-        .filter(Boolean)
-        .join(' ');
+      // Removed fixed salary highlighting (mark-fixed) per user request
+      const rowCls = [emp.offSalary ? 'mark-off-salary' : ''].filter(Boolean).join(' ');
       rows.push(`<tr data-id='${emp.id}' class='${rowCls}'>
         ${state.settings.manageOfficialInline ? `<td><input type='checkbox' class='off-flag' data-id='${emp.id}' ${emp.offSalary ? 'checked' : ''} /></td>` : ''}
         <td>${emp.order}</td>
