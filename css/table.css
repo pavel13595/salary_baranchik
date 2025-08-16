@@ -1,3 +1,13 @@
+/* Right-aligned tags inside position cell */
+.payroll-table td.pos-cell { position: relative; }
+.payroll-table td.pos-cell .cell-tags {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  gap: 4px;
+}
 /* table.css
  * Стилі для основної таблиці зарплат, групи, редаговані клітинки
  */

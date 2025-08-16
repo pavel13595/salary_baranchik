@@ -18,6 +18,8 @@
  * @property {number} gifts
  * @property {number} withheld
  * @property {number} pay
+ * @property {boolean} [waiterMinGuarantee]
+ * @property {boolean} [min500Applied]
  */
 export const $ = (sel) => document.querySelector(sel);
 export const $$ = (sel) => Array.from(document.querySelectorAll(sel));
