@@ -96,7 +96,9 @@
 }
 /* Removed .mark-fixed highlighting */
 /* Missing sales indicator (red question mark) */
-td.editable.missing-sales { position: relative; }
+td.editable.missing-sales {
+  position: relative;
+}
 td.editable.missing-sales:after {
   content: '?';
   color: #ff4d61; /* red */
