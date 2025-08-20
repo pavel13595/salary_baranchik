@@ -154,9 +154,9 @@ function buildReportData() {
         formula = `${f('D')}*${f('C')}-${f('F')}-${f('G')}`;
       } else if (subgroupName === 'Офіціанти / ранери') {
         if (isWaiter) {
-          // If min 500 guarantee applied in in-memory state, export fixed 500 instead of percent formula
-          if (e.min500Applied) {
-            formula = `500-${f('G')}-${f('F')}`;
+          // Always embed guarantee logic if enabled: IF(netSales < 10000, 500, netSales * percent) - issued - withheld
+          if (e.waiterMinGuarantee !== false) {
+            formula = `IF(${f('E')}<10000,500,${f('E')}*${f('D')})-${f('G')}-${f('F')}`;
           } else {
             formula = `${f('E')}*${f('D')}-${f('G')}-${f('F')}`;
           }
