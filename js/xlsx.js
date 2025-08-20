@@ -123,8 +123,8 @@ function buildReportData() {
           e.podarki ??
           0
       );
-      const netSales = rawSales - (isNaN(gifts) ? 0 : gifts);
-      row.push(netSales > 0 ? netSales : 0); // E net sales (never negative)
+  const netSales = rawSales - (isNaN(gifts) ? 0 : gifts);
+  row.push(netSales > 0 ? netSales : 0); // E net sales (never negative)
       const withheldVal = Number(e.withheld || 0);
       row.push(withheldVal); // F withheld numeric (0 allowed)
       row.push(0); // G issued numeric default 0
@@ -154,7 +154,12 @@ function buildReportData() {
         formula = `${f('D')}*${f('C')}-${f('F')}-${f('G')}`;
       } else if (subgroupName === 'Офіціанти / ранери') {
         if (isWaiter) {
-          formula = `${f('E')}*${f('D')}-${f('G')}-${f('F')}`;
+          // If min 500 guarantee applied in in-memory state, export fixed 500 instead of percent formula
+          if (e.min500Applied) {
+            formula = `500-${f('G')}-${f('F')}`;
+          } else {
+            formula = `${f('E')}*${f('D')}-${f('G')}-${f('F')}`;
+          }
         } else if (isRunner) {
           formula = `${f('C')}*${f('D')}-${f('G')}-${f('F')}`;
         } else {
