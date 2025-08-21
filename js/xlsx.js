@@ -4,8 +4,8 @@ import { computePays } from './pay.js';
 import { rateDisplay, parseHoursInterval, fixedPerDay } from './utils.js';
 
 const FIXED_LAYOUT = [
-  { key: 'name', title: '', width: 28 },
-  { key: 'position', title: 'Посада', width: 16 },
+  { key: 'name', title: '', width: 25 },
+  { key: 'position', title: 'Посада', width: 12 },
   // Fixed header wording: remove duplicated word and trailing artifacts
   { key: 'hours', title: 'Кількість відпрацьованих годин', width: 18 },
   { key: 'rate', title: 'Ставка', width: 10 },
@@ -51,6 +51,7 @@ function buildReportData() {
   const data = [];
   const merges = [];
   const formulaRows = []; // { rowNumber, formula, percentRate }
+  const totalColIndex = FIXED_LAYOUT.findIndex((c) => c.key === 'total');
   data.push([titleLine, ...Array(headersLocal.length - 1).fill('')]);
   merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: headersLocal.length - 1 } });
   const dateRow = [dateStrDisp, ...Array(headersLocal.length - 1).fill('')];
@@ -66,7 +67,6 @@ function buildReportData() {
   }
   let rowIdx = 3;
   const isDayOff = (emp) => /вихід|вибув/i.test(emp.hoursText || '');
-  const totalColIndex = FIXED_LAYOUT.findIndex((c) => c.key === 'total');
   const subgroupMap = new Map();
   SUBGROUPS.forEach((sg) => subgroupMap.set(sg.name, []));
   for (const emp of state.employees) {
@@ -123,13 +123,16 @@ function buildReportData() {
           e.podarki ??
           0
       );
-  const netSales = rawSales - (isNaN(gifts) ? 0 : gifts);
-  row.push(netSales > 0 ? netSales : 0); // E net sales (never negative)
+      const netSales = rawSales - (isNaN(gifts) ? 0 : gifts);
+      // Columns E/F/G: blank if zero so previews (e.g. Telegram) show empty, Excel formulas still treat blank as 0.
+      const salesCellVal = netSales > 0 ? netSales : null;
+      row.push(salesCellVal); // E blank if 0 (null => truly empty cell)
       const withheldVal = Number(e.withheld || 0);
-      row.push(withheldVal); // F withheld numeric (0 allowed)
-      row.push(0); // G issued numeric default 0
-      // Placeholder for total (H) will be formula later
-      row.push('');
+      row.push(withheldVal !== 0 ? withheldVal : null); // F blank if 0
+      const issuedVal = 0; // G currently always 0
+      row.push(issuedVal !== 0 ? issuedVal : null); // G blank if 0
+      // Placeholder for total (H) left blank; formula inserted later
+      row.push(null);
       row.push(''); // I sign
       data.push(row);
       const excelRowNumber = rowIdx + 1; // data index to Excel row: index 0 => row1
@@ -140,6 +143,7 @@ function buildReportData() {
         return col + excelRowNumber;
       }
       let formula;
+      let totalValue = 0; // предвычисленный итог для кэша
       const isRunner = /ранер/.test(pos);
       const isWaiter = /офіціант|официант/.test(pos);
       const isHostess = /хостес/.test(pos);
@@ -148,46 +152,66 @@ function buildReportData() {
       // Base patterns using columns: C hours, D rate, E sales, F withheld, G issued
       if (subgroupName === 'Бар') {
         formula = `(${f('D')}*${f('C')})-${f('F')}-${f('G')}+${f('E')}*0.05`;
+        totalValue = rVal * hoursVal - withheldVal - issuedVal + netSales * 0.05;
       } else if (subgroupName === 'Адмін. Персонал') {
         formula = `${f('D')}*${f('C')}-${f('F')}-${f('G')}`;
+        totalValue = rVal * hoursVal - withheldVal - issuedVal;
       } else if (subgroupName === 'Кухня') {
         formula = `${f('D')}*${f('C')}-${f('F')}-${f('G')}`;
+        totalValue = rVal * hoursVal - withheldVal - issuedVal;
       } else if (subgroupName === 'Офіціанти / ранери') {
         if (isWaiter) {
           // Always embed guarantee logic if enabled: IF(netSales < 10000, 500, netSales * percent) - issued - withheld
           if (e.waiterMinGuarantee !== false) {
             formula = `IF(${f('E')}<10000,500,${f('E')}*${f('D')})-${f('G')}-${f('F')}`;
+            totalValue =
+              netSales < 10000
+                ? 500 - issuedVal - withheldVal
+                : netSales * rVal - issuedVal - withheldVal;
           } else {
             formula = `${f('E')}*${f('D')}-${f('G')}-${f('F')}`;
+            totalValue = netSales * rVal - issuedVal - withheldVal;
           }
         } else if (isRunner) {
           formula = `${f('C')}*${f('D')}-${f('G')}-${f('F')}`;
+          totalValue = hoursVal * rVal - issuedVal - withheldVal;
         } else {
           formula = `${f('C')}*${f('D')}-${f('F')}-${f('G')}`;
+          totalValue = hoursVal * rVal - withheldVal - issuedVal;
         }
       } else if (subgroupName === 'Хостес / Доставка') {
         if (isHostess) {
           formula = `${f('D')}*${f('C')}+${f('E')}*0.02-${f('F')}-${f('G')}`;
+          totalValue = rVal * hoursVal + netSales * 0.02 - withheldVal - issuedVal;
         } else if (isPacker) {
           formula = `${f('C')}*${f('D')}-${f('G')}-${f('F')}`;
+          totalValue = hoursVal * rVal - issuedVal - withheldVal;
         } else {
           formula = `${f('C')}*${f('D')}-${f('F')}-${f('G')}`;
+          totalValue = hoursVal * rVal - withheldVal - issuedVal;
         }
       } else if (subgroupName === 'Господарка') {
         formula = `${f('C')}*${f('D')}-${f('G')}-${f('F')}`;
+        totalValue = hoursVal * rVal - issuedVal - withheldVal;
       } else if (subgroupName === 'Інший персонал') {
         if (isCourier) {
           formula = `${f('C')}*${f('D')}-${f('G')}-${f('F')}`;
+          totalValue = hoursVal * rVal - issuedVal - withheldVal;
         } else {
           formula = `${f('D')}*${f('C')}-${f('F')}-${f('G')}`;
+          totalValue = rVal * hoursVal - withheldVal - issuedVal;
         }
       } else {
         formula = `${f('D')}*${f('C')}-${f('F')}-${f('G')}`;
+        totalValue = rVal * hoursVal - withheldVal - issuedVal;
       }
+      // Округляем до копеек (2 знака) для кэша
+      totalValue = Math.round((totalValue + Number.EPSILON) * 100) / 100;
       formulaRows.push({
         rowNumber: excelRowNumber,
         formula,
         percentRate: e.rateType === 'waiter',
+        value: totalValue,
       });
       employeeRowNumbers.push(excelRowNumber);
       rowIdx++;
@@ -202,7 +226,16 @@ function buildReportData() {
       const firstEmp = Math.min(...employeeRowNumbers);
       const lastEmp = Math.max(...employeeRowNumbers);
       const subtotalFormula = `SUM(H${firstEmp}:H${lastEmp})`;
-      formulaRows.push({ rowNumber: subtotalExcelRow, formula: subtotalFormula });
+      // Предвычисленный subtotal
+      const subtotalValue = employeeRowNumbers.reduce((acc, rn) => {
+        const fr = formulaRows.find((f) => f.rowNumber === rn);
+        return acc + (fr?.value || 0);
+      }, 0);
+      formulaRows.push({
+        rowNumber: subtotalExcelRow,
+        formula: subtotalFormula,
+        value: subtotalValue,
+      });
       subtotalFormulaTargets.push(subtotalExcelRow);
       const issuedIdx = FIXED_LAYOUT.findIndex((c) => c.key === 'issued');
       merges.push({ s: { r: rowIdx, c: 1 }, e: { r: rowIdx, c: issuedIdx } });
@@ -216,7 +249,11 @@ function buildReportData() {
   if (subtotalFormulaTargets.length) {
     const parts = subtotalFormulaTargets.map((rn) => `H${rn}`);
     const grandFormula = `SUM(${parts.join(',')})`;
-    formulaRows.push({ rowNumber: grandExcelRow, formula: grandFormula });
+    const grandValue = subtotalFormulaTargets.reduce((acc, rn) => {
+      const fr = formulaRows.find((f) => f.rowNumber === rn);
+      return acc + (fr?.value || 0);
+    }, 0);
+    formulaRows.push({ rowNumber: grandExcelRow, formula: grandFormula, value: grandValue });
   }
   const issuedIdx = FIXED_LAYOUT.findIndex((c) => c.key === 'issued');
   merges.push({ s: { r: rowIdx, c: 1 }, e: { r: rowIdx, c: issuedIdx } });
@@ -265,13 +302,21 @@ export async function exportExcel() {
       s: { r: 0, c: 0 },
       e: { r: data.length - 1, c: headers.length - 1 },
     });
-    // Apply formulas (SheetJS): set total column (H) formulas
+    // Apply formulas (SheetJS): set total column (H) formulas, omit cached value if zero to hide in preview
     formulaRows.forEach((fr) => {
       const cellRef = 'H' + fr.rowNumber;
-      if (!ws[cellRef]) ws[cellRef] = { t: 'n', f: fr.formula };
-      else ws[cellRef].f = fr.formula;
+      const val = fr.value ?? 0;
+      ws[cellRef] = ws[cellRef] || {};
+      ws[cellRef].f = fr.formula;
+      if (val !== 0) {
+        ws[cellRef].v = val;
+        ws[cellRef].t = 'n';
+      } else {
+        delete ws[cellRef].v;
+        delete ws[cellRef].t;
+      }
     });
-    // Number formatting: hours (C) -> 0.00 ; rate (D) integer except waiter percent -> 0% ; sales (E), withheld (F), issued (G), total (H) -> integer
+    // Number formatting: hours (C) -> 0.00 ; rate (D) integer except waiter percent -> 0% ; sales (E), withheld (F), issued (G) hide zero ; total (H) hide zero
     const rng = XLSX.utils.decode_range(ws['!ref']);
     const waiterRateRows = new Set(
       formulaRows.filter((fr) => fr.percentRate).map((fr) => fr.rowNumber)
@@ -284,21 +329,46 @@ export async function exportExcel() {
       if (ws[cRate] && typeof ws[cRate].v === 'number')
         ws[cRate].z = waiterRateRows.has(excelRow) ? '0%' : '0';
       const cSales = XLSX.utils.encode_cell({ r, c: 4 });
-      if (ws[cSales] && typeof ws[cSales].v === 'number') ws[cSales].z = '0;-0;;';
+      if (ws[cSales]) ws[cSales].z = '0;-0;;';
       const cWithheld = XLSX.utils.encode_cell({ r, c: 5 });
-      if (ws[cWithheld] && typeof ws[cWithheld].v === 'number') ws[cWithheld].z = '0;-0;;';
+      if (ws[cWithheld]) ws[cWithheld].z = '0;-0;;';
       const cIssued = XLSX.utils.encode_cell({ r, c: 6 });
-      if (ws[cIssued] && typeof ws[cIssued].v === 'number') ws[cIssued].z = '0;-0;;';
+      if (ws[cIssued]) ws[cIssued].z = '0;-0;;';
       const cTotal = XLSX.utils.encode_cell({ r, c: 7 });
-      if (
-        ws[cTotal] &&
-        (ws[cTotal].v === undefined || ws[cTotal].f || typeof ws[cTotal].v === 'number')
-      )
-        ws[cTotal].z = '0';
+      if (ws[cTotal]) ws[cTotal].z = '0;-0;;';
+      // Ensure header cell H3 visible if holds text
+      if (excelRow === 3) {
+        const h3Ref = XLSX.utils.encode_cell({ r: 2, c: 7 });
+        if (ws[h3Ref] && typeof ws[h3Ref].v === 'string') ws[h3Ref].z = '@';
+      }
     }
     const wb = XLSX.utils.book_new();
+    // Hint for recalc (SheetJS: set WB view prop for apps that respect it)
+    wb.Workbook = wb.Workbook || {};
+    wb.Workbook.CalcPr = { fullCalcOnLoad: true };
     XLSX.utils.book_append_sheet(wb, ws, 'Відомість');
     applyExactVisualTemplateSheetJS(ws);
+    applyUniformGridSheetJS(ws); // baseline style
+    // Extra: ensure subgroup name rows bold (safety if previous pass missed)
+    try {
+      const subgroupNames = new Set(SUBGROUPS.map((s) => s.name));
+      const rng2 = XLSX.utils.decode_range(ws['!ref']);
+      for (let r = rng2.s.r; r <= rng2.e.r; r++) {
+        const aRef = XLSX.utils.encode_cell({ r, c: 0 });
+        const val = ws[aRef] ? String(ws[aRef].v || '').trim() : '';
+        if (subgroupNames.has(val)) {
+          // Walk all columns in row; ensure cell exists & font bold
+          for (let c = rng2.s.c; c <= rng2.e.c; c++) {
+            const ref = XLSX.utils.encode_cell({ r, c });
+            if (!ws[ref]) continue;
+            ws[ref].s = ws[ref].s || {};
+            const font = Object.assign({ name: 'Calibri', sz: 11 }, ws[ref].s.font || {});
+            font.bold = true;
+            ws[ref].s.font = font;
+          }
+        }
+      }
+    } catch (e) {}
     const citySegment = state.settings.city ? state.settings.city.replace(/\s+/g, '_') : 'Місто';
     const dParts = repDateStr.split('-');
     const dateSeg = `${dParts[2]}.${dParts[1]}`;
@@ -338,13 +408,20 @@ async function exportExcelExcelJS() {
   const filename = `Відомість_${citySegment}_${dateSeg}.xlsx`;
   try {
     const wb = new ExcelJS.Workbook();
+    // Force Excel to recalc on open to populate totals where cached results omitted
+    wb.calcProperties.fullCalcOnLoad = true;
     const ws = wb.addWorksheet('Відомість', { properties: { defaultRowHeight: 12.75 } });
     data.forEach((r) => ws.addRow(r));
-    // Apply formulas and numeric formats in ExcelJS
+    // Apply formulas and numeric formats in ExcelJS; skip caching zero results
     formulaRows.forEach((fr) => {
       const cell = ws.getCell('H' + fr.rowNumber);
-      cell.value = { formula: fr.formula };
-      cell.numFmt = '0';
+      const val = fr.value ?? 0;
+      if (val === 0) {
+        cell.value = { formula: fr.formula }; // no cached result => blank in preview
+      } else {
+        cell.value = { formula: fr.formula, result: val };
+      }
+      cell.numFmt = '0;-0;;';
     });
     // Column formats
     if (ws.getColumn(3)) ws.getColumn(3).numFmt = '0.00'; // hours keep 2 decimals
@@ -352,7 +429,10 @@ async function exportExcelExcelJS() {
     if (ws.getColumn(5)) ws.getColumn(5).numFmt = '0;-0;;'; // sales hide zero
     if (ws.getColumn(6)) ws.getColumn(6).numFmt = '0;-0;;'; // withheld hide zero
     if (ws.getColumn(7)) ws.getColumn(7).numFmt = '0;-0;;'; // issued hide zero
-    if (ws.getColumn(8)) ws.getColumn(8).numFmt = '0'; // total
+    if (ws.getColumn(8)) ws.getColumn(8).numFmt = '0;-0;;'; // total hide zero
+    // Override header cell H3 to show text (custom numeric format hides text section)
+    const headerH3 = ws.getCell('H3');
+    if (headerH3 && typeof headerH3.value === 'string') headerH3.numFmt = '@';
     // Percent rates for waiter rows: set individual cell format to percent (override integer)
     formulaRows
       .filter((fr) => fr.percentRate)
@@ -391,8 +471,8 @@ async function exportExcelExcelJS() {
     const setW = (col, val) => {
       if (ws.getColumn(col)) ws.getColumn(col).width = val;
     };
-    setW('A', 30.7109375);
-    setW('B', 19.5703125);
+    setW('A', 25);
+    setW('B', 12);
     setW('C', 9.28515625);
     setW('G', 11.5703125);
     setW('H', 12.140625);
@@ -522,6 +602,21 @@ async function exportExcelExcelJS() {
       bot.border = { ...(bot.border || {}), bottom: medium };
     }
     ws.views = [{ state: 'frozen', ySplit: headerRowIndex || 3 }];
+    // NEW: uniform style pass (Option A)
+    applyUniformGridExcelJS(ws);
+    // Extra: ensure subgroup rows bold (safety layer)
+    try {
+      const subgroupNames = new Set(SUBGROUPS.map((s) => s.name));
+      for (let r = 1; r <= ws.rowCount; r++) {
+        const row = ws.getRow(r);
+        const valA = String(row.getCell(1).value || '').trim();
+        if (subgroupNames.has(valA)) {
+          row.eachCell((cell) => {
+            cell.font = { ...(cell.font || { name: 'Calibri', size: 11 }), bold: true };
+          });
+        }
+      }
+    } catch (e) {}
     const buffer = await wb.xlsx.writeBuffer();
     const blob = new Blob([buffer], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -631,5 +726,242 @@ function applyExactVisualTemplateSheetJS(ws) {
       }
       setStyle(ref, base);
     }
+  }
+}
+
+// === Uniform grid styling (Option A) for SheetJS ===
+function applyUniformGridSheetJS(ws) {
+  if (!ws || !ws['!ref']) return;
+  try {
+    const rng = XLSX.utils.decode_range(ws['!ref']);
+    const thin = { style: 'thin', color: { rgb: '000000' } };
+    const baseFont = { name: 'Calibri', sz: 11, color: { rgb: '000000' } };
+    const medium = { style: 'medium', color: { rgb: '000000' } };
+    // Detect header row (contains 'Посада')
+    let headerRow = 3;
+    for (let r = rng.s.r; r <= rng.e.r; r++) {
+      for (let c = rng.s.c; c <= rng.e.c; c++) {
+        const ref = XLSX.utils.encode_cell({ r, c });
+        if (ws[ref] && String(ws[ref].v).trim() === 'Посада') {
+          headerRow = r + 1; // excel row number
+          r = rng.e.r + 1;
+          break;
+        }
+      }
+    }
+    const excelHeaderRow = headerRow;
+    const totalColIdx = FIXED_LAYOUT.length - 1;
+    const subgroupRows = new Set();
+    const totalRows = new Set();
+    for (let r = rng.s.r; r <= rng.e.r; r++) {
+      for (let c = rng.s.c; c <= rng.e.c; c++) {
+        const ref = XLSX.utils.encode_cell({ r, c });
+        if (!ws[ref]) ws[ref] = { v: '', t: 's' }; // ensure cell exists so style persists
+        const cell = ws[ref];
+        cell.s = cell.s || {};
+        const excelRow = r + 1;
+        const aRef = XLSX.utils.encode_cell({ r, c: 0 });
+        const aVal = ws[aRef] ? String(ws[aRef].v || '').trim() : '';
+        const bRef = XLSX.utils.encode_cell({ r, c: 1 });
+        const cRef = XLSX.utils.encode_cell({ r, c: 2 });
+        const isTitle = excelRow === 1;
+        const isDate = excelRow === 2;
+        const isHeader = excelRow === excelHeaderRow;
+        const isGrand = /^ВСЬОГО$/i.test(aVal);
+        const isGroupTotal = /^всього\s+/i.test(aVal) && !isGrand;
+        const isSubgroup =
+          !isGrand &&
+          !isGroupTotal &&
+          !isHeader &&
+          !!aVal &&
+          (!ws[bRef] || !ws[bRef].v) &&
+          (!ws[cRef] || !ws[cRef].v) &&
+          excelRow > excelHeaderRow;
+        // Base alignment
+        const align = {
+          vertical: 'center',
+          horizontal: c === 0 ? 'left' : 'center',
+          wrapText: true,
+        };
+        // Decide borders
+        let topB = thin,
+          bottomB = thin,
+          leftB = thin,
+          rightB = thin;
+        if (isHeader) {
+          topB = medium;
+          bottomB = medium;
+        }
+        if (isSubgroup) {
+          topB = medium;
+          bottomB = medium;
+          subgroupRows.add(excelRow);
+        }
+        if (isGroupTotal) {
+          topB = thin;
+          bottomB = medium;
+          totalRows.add(excelRow);
+        }
+        if (isGrand) {
+          topB = medium;
+          bottomB = medium;
+          totalRows.add(excelRow);
+        }
+        if (isTitle) {
+          topB = medium;
+          bottomB = medium;
+        }
+        if (excelRow === rng.e.r + 1) bottomB = medium; // last row safety
+        if (c === 0) leftB = medium;
+        if (c === totalColIdx) rightB = medium;
+        // Font
+        let font = { ...baseFont };
+        if (isTitle || isHeader || isSubgroup || isGroupTotal || isGrand) font.bold = true;
+        // Fill
+        let fill = cell.s.fill;
+        if (isSubgroup) fill = { patternType: 'solid', fgColor: { rgb: 'FFF2C4' } };
+        // no fill for grand total
+        cell.s = {
+          font,
+          alignment: align,
+          border: { top: topB, bottom: bottomB, left: leftB, right: rightB },
+          fill,
+        };
+      }
+    }
+    // Second pass: perimeter enforcement
+    for (let r = rng.s.r; r <= rng.e.r; r++) {
+      for (let c = rng.s.c; c <= rng.e.c; c++) {
+        const ref = XLSX.utils.encode_cell({ r, c });
+        const cell = ws[ref];
+        if (!cell || !cell.s) continue;
+        const b = cell.s.border || {};
+        if (r === rng.s.r) b.top = medium;
+        if (r === rng.e.r) b.bottom = medium;
+        if (c === rng.s.c) b.left = medium;
+        if (c === rng.e.c) b.right = medium;
+        // Add extra separator above subgroup headers (except if already medium)
+        if (subgroupRows.has(r + 1)) b.bottom = medium;
+        if (subgroupRows.has(r)) b.top = medium;
+        // Ensure bottom of totals bold
+        if (totalRows.has(r + 1)) b.bottom = medium;
+        cell.s.border = b;
+      }
+    }
+  } catch (e) {
+    console.warn('Uniform style SheetJS failed', e);
+  }
+}
+
+// === Uniform grid styling (Option A) for ExcelJS ===
+function applyUniformGridExcelJS(ws) {
+  if (!ws) return;
+  const thin = { style: 'thin', color: { argb: 'FF000000' } };
+  const baseFont = { name: 'Calibri', size: 11, color: { argb: 'FF000000' } };
+  try {
+    // Detect header row
+    let headerRowIndex = 3;
+    const subgroupRows = new Set();
+    const totalRows = new Set();
+    for (let r = 1; r <= ws.rowCount; r++) {
+      const row = ws.getRow(r);
+      for (let c = 1; c <= row.cellCount; c++) {
+        if (String(row.getCell(c).value || '').trim() === 'Посада') {
+          headerRowIndex = r;
+          r = ws.rowCount + 1;
+          break;
+        }
+      }
+    }
+    const totalColIdx = FIXED_LAYOUT.length;
+    for (let r = 1; r <= ws.rowCount; r++) {
+      const row = ws.getRow(r);
+      const aVal = String(row.getCell(1).value || '').trim();
+      const bVal = String(row.getCell(2).value || '').trim();
+      const cVal = String(row.getCell(3).value || '').trim();
+      const isTitle = r === 1;
+      const isDate = r === 2;
+      const isHeader = r === headerRowIndex;
+      const isGrand = /^ВСЬОГО$/i.test(aVal);
+      const isGroupTotal = /^всього\s+/i.test(aVal) && !isGrand;
+      const isSubgroup =
+        !isGrand && !isGroupTotal && !isHeader && !!aVal && !bVal && !cVal && r > headerRowIndex;
+      for (let c = 1; c <= FIXED_LAYOUT.length; c++) {
+        const cell = row.getCell(c);
+        const existing = cell.border || {};
+        function pick(edge, desired) {
+          const b = existing[edge];
+          if (b && b.style === 'medium') return b; // preserve
+          return desired;
+        }
+        // Determine borders
+        let topB = thin,
+          bottomB = thin,
+          leftB = thin,
+          rightB = thin;
+        if (isHeader) {
+          topB = { style: 'medium', color: { argb: 'FF000000' } };
+          bottomB = { style: 'medium', color: { argb: 'FF000000' } };
+        }
+        if (isSubgroup) {
+          topB = { style: 'medium', color: { argb: 'FF000000' } };
+          bottomB = { style: 'medium', color: { argb: 'FF000000' } };
+          subgroupRows.add(r);
+        }
+        if (isGroupTotal) {
+          bottomB = { style: 'medium', color: { argb: 'FF000000' } };
+          totalRows.add(r);
+        }
+        if (isGrand) {
+          topB = { style: 'medium', color: { argb: 'FF000000' } };
+          bottomB = { style: 'medium', color: { argb: 'FF000000' } };
+          totalRows.add(r);
+        }
+        if (isTitle) {
+          topB = { style: 'medium', color: { argb: 'FF000000' } };
+          bottomB = { style: 'medium', color: { argb: 'FF000000' } };
+        }
+        if (r === ws.rowCount) bottomB = { style: 'medium', color: { argb: 'FF000000' } };
+        if (c === 1) leftB = { style: 'medium', color: { argb: 'FF000000' } };
+        if (c === totalColIdx) rightB = { style: 'medium', color: { argb: 'FF000000' } };
+        cell.font = cell.font || { ...baseFont };
+        if (isTitle || isHeader || isSubgroup || isGroupTotal || isGrand)
+          cell.font = { ...cell.font, bold: true };
+        if (!cell.alignment)
+          cell.alignment = {
+            vertical: 'center',
+            horizontal: c === 1 ? 'left' : 'center',
+            wrapText: true,
+          };
+        cell.border = {
+          top: pick('top', topB),
+          bottom: pick('bottom', bottomB),
+          left: pick('left', leftB),
+          right: pick('right', rightB),
+        };
+        if (isSubgroup)
+          cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFF2C4' } };
+        // no fill for grand total
+      }
+    }
+    // Perimeter & separators second pass
+    const lastRow = ws.rowCount;
+    for (let r = 1; r <= lastRow; r++) {
+      const row = ws.getRow(r);
+      for (let c = 1; c <= FIXED_LAYOUT.length; c++) {
+        const cell = row.getCell(c);
+        const b = cell.border || {};
+        if (r === 1) b.top = { style: 'medium', color: { argb: 'FF000000' } };
+        if (r === lastRow) b.bottom = { style: 'medium', color: { argb: 'FF000000' } };
+        if (c === 1) b.left = { style: 'medium', color: { argb: 'FF000000' } };
+        if (c === FIXED_LAYOUT.length) b.right = { style: 'medium', color: { argb: 'FF000000' } };
+        if (subgroupRows.has(r)) b.top = { style: 'medium', color: { argb: 'FF000000' } };
+        if (subgroupRows.has(r - 1)) b.top = { style: 'medium', color: { argb: 'FF000000' } };
+        if (totalRows.has(r)) b.bottom = { style: 'medium', color: { argb: 'FF000000' } };
+        cell.border = b;
+      }
+    }
+  } catch (e) {
+    console.warn('Uniform style ExcelJS failed', e);
   }
 }
