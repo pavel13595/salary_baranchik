@@ -417,6 +417,19 @@ export function toggleTheme() {
 export function bindGlobalEvents() {
   $('#importEmployeesBtn').onclick = importEmployeesFlow;
   $('#editEmployeesBtn').onclick = editEmployeesFlow;
+  // Global ESC closes any open modal
+  if (!window.__escModalBound) {
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        const layer = document.getElementById('modalLayer');
+        if (layer && !layer.classList.contains('hidden')) {
+          closeModal();
+          e.stopPropagation();
+        }
+      }
+    });
+    window.__escModalBound = true;
+  }
   const exportCfgBtn = document.getElementById('exportConfigBtn');
   if (exportCfgBtn) {
     exportCfgBtn.onclick = () => {
@@ -553,7 +566,51 @@ export function bindGlobalEvents() {
     };
   }
   $('#inputHoursBtn').onclick = importHoursFlow;
-  $('#exportExcelBtn').onclick = exportExcel;
+  $('#exportExcelBtn').onclick = () => {
+    // Detect missing sales for waiter/hostess with worked hours
+    const missing = state.employees.filter(
+      (e) =>
+        (e.rateType === 'waiter' || e.rateType === 'hostess') &&
+        e.hoursMinutes > 0 &&
+        (!e.sales || e.sales === 0)
+    );
+    if (missing.length) {
+      const body = document.createElement('div');
+      body.className = 'missing-sales-modal-body';
+      const intro = document.createElement('div');
+      intro.className = 'helper';
+      intro.innerHTML =
+        'Не внесено <b>продажі</b> для наступних співробітників. Це може призвести до некоректного розрахунку зарплати (мінімальна гарантія 500 грн може застосуватися або вийде 0). Ви можете повернутися та заповнити дані або продовжити експорт без них:';
+      body.appendChild(intro);
+      const list = document.createElement('ul');
+      list.style.margin = '12px 0';
+      list.style.paddingLeft = '18px';
+      missing.forEach((e) => {
+        const li = document.createElement('li');
+        const roleLabel = e.rateType === 'waiter' ? 'офіціант' : 'хостес';
+        li.textContent = `${e.name} (${roleLabel})`;
+        list.appendChild(li);
+      });
+      body.appendChild(list);
+      openModal({
+        title: 'Незаповнені продажі',
+        body,
+        actions: [
+          { label: 'Скасувати', class: 'subtle', onClick: closeModal },
+          {
+            label: 'Продовжити експорт',
+            class: 'primary',
+            onClick: () => {
+              closeModal();
+              exportExcel();
+            },
+          },
+        ],
+      });
+      return;
+    }
+    exportExcel();
+  };
   const copyBtn = document.getElementById('copyNamesBtn');
   if (copyBtn) {
     copyBtn.addEventListener('click', (ev) => {
