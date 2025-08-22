@@ -4,7 +4,7 @@ import { computePays } from './pay.js';
 import { renderEmployeesTable, bindGlobalEvents, showToast } from './ui.js';
 
 // Build/version marker (update hash when deploying to GitHub Pages to force cache refresh)
-const APP_VERSION = '2025.08.21.3';
+const APP_VERSION = '2025.08.22.1';
 console.info('[Payroll] App version', APP_VERSION);
 
 loadState();
