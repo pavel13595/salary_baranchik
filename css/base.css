@@ -59,6 +59,54 @@ body {
   align-items: center;
 }
 
+/* Header action buttons — reduce visual noise */
+.app-header .action-group button {
+  --pad: 8px 12px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+  box-shadow: none;
+}
+.app-header .action-group button.primary,
+.app-header .action-group button.accent,
+.app-header .action-group button.warn,
+.app-header .action-group button.danger,
+.app-header .action-group button.subtle,
+.app-header .action-group button.outline-accent {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+.app-header .action-group button:hover {
+  transform: none;
+  background: var(--panel-alt);
+  box-shadow: none;
+}
+/* Small color dot to convey action intent without bright fills */
+.app-header .action-group button.accent::before,
+.app-header .action-group button.warn::before,
+.app-header .action-group button.danger::before,
+.app-header .action-group button.outline-accent::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+}
+.app-header .action-group button.accent::before {
+  background: #22c55e;
+}
+.app-header .action-group button.warn::before {
+  background: var(--warn);
+}
+.app-header .action-group button.danger::before {
+  background: var(--danger);
+}
+.app-header .action-group button.outline-accent::before {
+  background: var(--accent);
+}
+
 /* Action group button text colors: dark = white, light = black */
 .action-group button {
   color: #fff;
