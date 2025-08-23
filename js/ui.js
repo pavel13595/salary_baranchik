@@ -53,13 +53,20 @@ export function renderEmployeesTable() {
     return;
   }
   const rows = [];
+  const totalCols = (state.settings.manageOfficialInline ? 1 : 0) + 9;
   rows.push(
     `<table class='payroll-table'><thead><tr>${state.settings.manageOfficialInline ? '<th class="off-col" title="Офіційна ЗП">Оф</th>' : ''}<th>#</th><th>ПІБ</th><th>Посада</th><th>Ставка</th><th>Години</th><th>Продажі</th><th>Подарунки</th><th>Утримано</th><th>ЗП</th></tr></thead><tbody>`
   );
   for (const g of grouped) {
-    if (g !== '_NO_GROUP_')
-      rows.push(`<tr class='group-row'><td colspan='9'>${escapeHtml(g)}</td></tr>`);
+    const isCollapsible = g !== '_NO_GROUP_';
+    const isCollapsed = isCollapsible && state.settings.collapsedGroups.includes(g);
+    if (isCollapsible) {
+      rows.push(
+        `<tr class='group-row' data-group='${escapeHtml(g)}'><td colspan='${totalCols}'><span class='group-title'>${escapeHtml(g)}</span></td></tr>`
+      );
+    }
     for (const emp of orderMap.get(g)) {
+      if (isCollapsed) continue;
       const fixed = emp.rateType === 'fixed';
       const rateDisp = rateDisplay(emp);
       const fixedTag = fixed ? '<span class="tag-fixed">FIX</span>' : '';
@@ -135,6 +142,22 @@ export function renderEmployeesTable() {
     });
     container.dataset.ctxBound = '1';
   }
+  // Bind group collapse/expand toggles
+  // No arrow icon; entire group row toggles
+  container.querySelectorAll('tr.group-row').forEach((tr) => {
+    tr.addEventListener('click', (e) => {
+      // Ignore clicks on interactive elements inside
+      if (e.target.closest('button, a, input, .twisty')) return;
+      const group = tr.dataset.group;
+      if (!group) return;
+      const set = new Set(state.settings.collapsedGroups || []);
+      if (set.has(group)) set.delete(group);
+      else set.add(group);
+      state.settings.collapsedGroups = Array.from(set);
+      persist();
+      renderEmployeesTable();
+    });
+  });
   updateExportButtonState();
 }
 

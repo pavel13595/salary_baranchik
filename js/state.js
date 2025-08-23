@@ -5,7 +5,7 @@
  * @property {Employee[]} employees
  * @property {{ theme: 'dark'|'light', lastUpdated: string|null }} meta
  * @property {{ columns: any[], groupSubtotalMergeUntil: string, dateRow: boolean }} layout
- * @property {{ city: string, reportDate: string, showOfficial:boolean, filterOfficialOnly:boolean, manageOfficialInline:boolean }} settings
+ * @property {{ city: string, reportDate: string, showOfficial:boolean, filterOfficialOnly:boolean, manageOfficialInline:boolean, collapsedGroups:string[] }} settings
  */
 export const STORAGE_KEY = 'payroll_employees_v1';
 export const STORAGE_META = 'payroll_meta_v1';
@@ -37,6 +37,7 @@ export const state = {
     showOfficial: false,
     filterOfficialOnly: false,
     manageOfficialInline: false,
+    collapsedGroups: [],
   },
 };
 
@@ -57,6 +58,7 @@ export function loadState() {
       state.settings.filterOfficialOnly = false;
     if (typeof state.settings.manageOfficialInline !== 'boolean')
       state.settings.manageOfficialInline = false;
+    if (!Array.isArray(state.settings.collapsedGroups)) state.settings.collapsedGroups = [];
   } catch (e) {
     console.error('Помилка завантаження стану', e);
   }

@@ -107,6 +107,61 @@ body {
   background: var(--accent);
 }
 
+/* Light theme globally hides dots, but whitelist key actions to show intent */
+.light .app-header .action-group #inputHoursBtn::before,
+.light .app-header .action-group #clearHoursBtn::before,
+.light .app-header .action-group #fullResetBtn::before {
+  display: inline-block;
+}
+
+/* Light theme: make header action buttons fully uniform */
+.light .app-header .action-group button::before {
+  display: none; /* hide intent dots for a single-color look */
+}
+.light .app-header .action-group button,
+.light .app-header .action-group button.primary,
+.light .app-header .action-group button.accent,
+.light .app-header .action-group button.warn,
+.light .app-header .action-group button.danger,
+.light .app-header .action-group button.subtle,
+.light .app-header .action-group button.outline-accent {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: #000;
+}
+.light .app-header .action-group button:hover {
+  background: var(--panel-alt);
+}
+.light .app-header .action-group button.outline-accent {
+  border-color: var(--border);
+  color: #000;
+}
+.light .app-header .action-group button.outline-accent:hover {
+  background: var(--panel-alt);
+  color: #000;
+  border-color: var(--border);
+}
+
+/* Light theme: remove dimming for subtle buttons so color matches others */
+.light button.subtle {
+  filter: none;
+}
+
+/* Light theme: meta-group buttons (копировать ФИО, оф.ЗП, экспорт) uniform look */
+.light .meta-group button,
+.light .meta-group button.subtle,
+.light .meta-group button.outline-accent {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  color: #000;
+}
+.light .meta-group button:hover,
+.light .meta-group button.outline-accent:hover {
+  background: var(--panel-alt);
+  color: #000;
+  border-color: var(--border);
+}
+
 /* Action group button text colors: dark = white, light = black */
 .action-group button {
   color: #fff;

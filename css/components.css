@@ -62,6 +62,11 @@
   border-color: var(--accent);
   box-shadow: none;
 }
+.light #officialHighlightBtn.active {
+  background: var(--panel-alt);
+  color: #000; /* unify text color with other buttons in light */
+  border-color: var(--border);
+}
 body.show-official .payroll-table tr.mark-off-salary {
   background: linear-gradient(
     90deg,

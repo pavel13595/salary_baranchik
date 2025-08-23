@@ -69,6 +69,13 @@
   text-align: left; /* override global centering */
 }
 
+.payroll-table tbody tr.group-row td .group-title {
+  vertical-align: middle;
+}
+.payroll-table tbody tr.group-row {
+  cursor: pointer;
+}
+
 .payroll-table td.editable {
   cursor: text;
   background: rgba(255, 255, 255, 0.02);
